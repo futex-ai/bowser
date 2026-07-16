@@ -10,14 +10,18 @@ use crate::error::Result;
 pub async fn run(config: &bowser::BrowserConfig, args: CaptureArgs) -> Result<()> {
     require_session(config)?;
     let browser = Browser::launch(config.clone()).await?;
-    let page = match args.page_id.as_deref() {
-        Some(page_id) => browser.select_page(page_id).await?,
-        None => browser.current_page().await?,
-    };
-    let output = render_page(page.as_ref(), args.format).await?;
-    write_output(args.output.as_deref(), &output).await?;
-    browser.detach().await?;
-    Ok(())
+    let operation_result = async {
+        let page = match args.page_id.as_deref() {
+            Some(page_id) => browser.select_page(page_id).await?,
+            None => browser.current_page().await?,
+        };
+        render_page(page.as_ref(), args.format).await
+    }
+    .await;
+    let detach_result = browser.detach().await;
+    let output = operation_result?;
+    detach_result?;
+    write_output(args.output.as_deref(), &output).await
 }
 
 fn require_session(config: &bowser::BrowserConfig) -> Result<()> {

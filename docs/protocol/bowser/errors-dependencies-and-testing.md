@@ -273,6 +273,7 @@ Unit tests focus on pure helpers, serialization, config merging, session persist
 - Verify full pipeline: navigate → capture → verify YAML structure.
 - Verify `bowser get` prints a resumable session ID and a later command can resume the same browser session.
 - Verify a post-launch `bowser get` failure still detaches, reports its resumable session ID, and allows explicit cleanup of the owned ephemeral profile.
+- Verify resumed capture and interaction output failures plus page-management operation failures still detach, mark persisted captures stale, and retain the original command error.
 - Verify multi-page flows: list pages, create a new page, switch pages, close pages, and preserve the selected page across detach/resume.
 - Verify long lists/tables are truncated in normal capture output and can be fully retrieved with `bowser expand`.
 - Verify compact YAML omits link/image deferred metadata in default output, labels images from `alt` plus filename, and only shows `describable: true` when AI is currently available.

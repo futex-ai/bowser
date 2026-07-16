@@ -93,6 +93,13 @@ bowser get --format html --output page.html https://example.com
 bowser get --session bsr_01HZX... https://example.com/account
 ```
 
+After successfully resuming a session, `capture`, non-REPL interaction, and
+`page` commands must attempt `BrowserEngine::detach` even when page selection,
+the requested action, or rendering fails. The original operation error takes
+precedence over a detach error. Terminal and file output must happen only after
+the operation and detach both succeed, so an output failure cannot bypass the
+detach boundary.
+
 #### `bowser capture`
 
 Capture the currently selected page, or an explicit page ID, from a resumable

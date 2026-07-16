@@ -11,29 +11,31 @@ use crate::url::normalize_navigation_target;
 pub async fn run(config: bowser::BrowserConfig, command: PageSubcommand) -> Result<()> {
     require_session(&config)?;
     let browser = Browser::launch(config).await?;
+    let operation_result = execute(&browser, command).await;
+    let detach_result = browser.detach().await;
+    let output = operation_result?;
+    detach_result?;
+    print!("{output}");
+    Ok(())
+}
+
+async fn execute(browser: &dyn BrowserEngine, command: PageSubcommand) -> Result<String> {
     match command {
-        PageSubcommand::List => {
-            print!("{}", render_page_summaries(&browser.list_pages().await?));
-            browser.detach().await?;
-        }
+        PageSubcommand::List => Ok(render_page_summaries(&browser.list_pages().await?)),
         PageSubcommand::Select { page_id, format } => {
             let page = browser.select_page(&page_id).await?;
-            print!("{}", render_page(page.as_ref(), format).await?);
-            browser.detach().await?;
+            render_page(page.as_ref(), format).await
         }
         PageSubcommand::New { url, format } => {
             let url = url.map(|url| normalize_navigation_target(&url));
             let page = browser.new_page(url.as_deref()).await?;
-            print!("{}", render_page(page.as_ref(), format).await?);
-            browser.detach().await?;
+            render_page(page.as_ref(), format).await
         }
         PageSubcommand::Close { page_id, format } => {
             let page = browser.close_page(page_id.as_deref()).await?;
-            print!("{}", render_page(page.as_ref(), format).await?);
-            browser.detach().await?;
+            render_page(page.as_ref(), format).await
         }
     }
-    Ok(())
 }
 
 /// Renders page summaries for CLI and REPL output.

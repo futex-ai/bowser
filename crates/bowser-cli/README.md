@@ -29,6 +29,7 @@ bowser session list
 
 - `bowser <URL>` and `bowser get <URL>`: single-shot capture with detached-session output
 - once `get` creates a session, later navigation, capture, or output errors still detach and print `Session: <ID>` so the running browser remains discoverable and resumable
+- resumed `capture`, interaction, and `page` commands attempt detach after every browser operation; operation and render errors retain precedence, while terminal or file output happens only after detach succeeds
 - `bowser get --format html <URL>`: print the full current rendered document as raw HTML text while still storing the structural capture in the detached session
 - `bowser --all <URL>`: disable truncation for that capture; hidden and obscured semantic content is included by default under `content.obscured`
 - `bowser --headed --persistent-profile <URL>`: use a visible Chrome window and Bowser's stable default profile path

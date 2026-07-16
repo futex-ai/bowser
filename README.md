@@ -59,6 +59,10 @@ bowser capture --session <SESSION_ID>
 bowser session close <SESSION_ID>
 ```
 
+Resumed capture, interaction, and page-management commands re-detach before
+reporting operation, rendering, or output failures, so persisted page state is
+left ready for the next command.
+
 Run `bowser --help` for the full command surface. The
 [CLI crate README](crates/bowser-cli/README.md) documents commands and manual
 smoke paths in more detail.
