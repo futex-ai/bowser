@@ -1,12 +1,10 @@
-use tempfile::tempdir;
-
 use super::support;
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn supports_page_list_select_new_and_close_commands() {
     let _guard = support::browser_test_guard();
     let server = support::spawn_server().await;
-    let session_dir = tempdir().expect("session dir");
+    let session_dir = support::test_session_dir();
     let chrome_path = support::chrome_path();
 
     let get_output = support::run_bowser_with_retry(

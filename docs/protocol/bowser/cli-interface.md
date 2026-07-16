@@ -23,7 +23,7 @@ Options:
   --session-dir <DIR>        Session metadata directory
                               [default: platform state dir]
   --session-ttl <SECONDS>    Detached session idle TTL [default: 1800]
-  --viewport <WxH>           Viewport size [default: 1920x1080]
+  --viewport <WxH>           Positive viewport size [default: 1920x1080]
   --timeout <SECONDS>        Per-step page load timeout [default: 30]
   -a, --all                  Disable truncation for this capture
   --no-truncate              Disable collection truncation for this command

@@ -56,9 +56,7 @@ impl LivePage {
             .evaluate(format!("window.location.href = {url_json};"))
             .await
         {
-            return Err(Error::Download {
-                reason: format!("failed to start browser download: {error}"),
-            });
+            return Err(Error::DownloadStart { source: error });
         }
         let downloaded = wait_for_download(temp_dir, self.config.timeout).await?;
         let filename = downloaded

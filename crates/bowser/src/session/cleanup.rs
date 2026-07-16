@@ -7,6 +7,7 @@ use std::time::Duration;
 use chrono::Utc;
 use url::Url;
 
+use crate::debug_port::{DYNAMIC_DEBUG_PORT_ARGUMENT, DebugPortReader, FileDebugPortReader};
 use crate::error::Result;
 use crate::model::SessionSummary;
 
@@ -26,18 +27,29 @@ pub fn terminate_process(pid: u32) {
 
 /// Best-effort process termination for a detached Bowser session.
 pub fn terminate_session_processes(session: &SessionMetadata) {
-    terminate_session_processes_with(&SystemProcessControl, session);
+    terminate_session_processes_with(
+        &SystemProcessControl,
+        read_active_debug_port(session),
+        session,
+    );
 }
 
 pub(crate) fn validate_session_process_identity(session: &SessionMetadata) -> Result<()> {
-    validate_session_process_identity_with(&SystemProcessControl, session)
+    validate_session_process_identity_with(
+        &SystemProcessControl,
+        read_active_debug_port(session),
+        session,
+    )
 }
 
 pub(crate) fn validate_session_process_identity_with(
     control: &dyn ProcessControl,
+    active_debug_port: Option<u16>,
     session: &SessionMetadata,
 ) -> Result<()> {
-    if chrome_process_is_running(control, session) {
+    if control.command_line(session.pid).is_some_and(|cmdline| {
+        chrome_process_identity_matches(&cmdline, active_debug_port, session)
+    }) {
         return Ok(());
     }
     Err(crate::error::Error::SessionProcessIdentityMismatch {
@@ -49,6 +61,7 @@ pub(crate) fn validate_session_process_identity_with(
 pub async fn terminate_session_processes_and_wait(session: &SessionMetadata) -> Result<()> {
     terminate_session_processes_and_wait_with(
         &SystemProcessControl,
+        read_active_debug_port(session),
         session,
         GRACEFUL_EXIT_TIMEOUT,
         FORCED_EXIT_TIMEOUT,
@@ -58,18 +71,19 @@ pub async fn terminate_session_processes_and_wait(session: &SessionMetadata) -> 
 
 pub(crate) async fn terminate_session_processes_and_wait_with(
     control: &dyn ProcessControl,
+    active_debug_port: Option<u16>,
     session: &SessionMetadata,
     graceful_timeout: Duration,
     forced_timeout: Duration,
 ) -> Result<()> {
-    terminate_session_processes_with(control, session);
-    if wait_for_chrome_exit(control, session, graceful_timeout).await {
+    terminate_session_processes_with(control, active_debug_port, session);
+    if wait_for_chrome_exit(control, active_debug_port, session, graceful_timeout).await {
         return Ok(());
     }
-    if chrome_process_is_running(control, session) {
+    if chrome_process_is_running(control, active_debug_port, session) {
         control.force_terminate(session.pid);
     }
-    if wait_for_chrome_exit(control, session, forced_timeout).await {
+    if wait_for_chrome_exit(control, active_debug_port, session, forced_timeout).await {
         return Ok(());
     }
     Err(crate::error::Error::SessionProcessStillRunning { pid: session.pid })
@@ -77,12 +91,12 @@ pub(crate) async fn terminate_session_processes_and_wait_with(
 
 pub(crate) fn terminate_session_processes_with(
     control: &dyn ProcessControl,
+    active_debug_port: Option<u16>,
     session: &SessionMetadata,
 ) {
-    if control
-        .command_line(session.pid)
-        .is_some_and(|cmdline| chrome_cmdline_matches(&cmdline, session))
-    {
+    if control.command_line(session.pid).is_some_and(|cmdline| {
+        chrome_process_identity_matches(&cmdline, active_debug_port, session)
+    }) {
         control.terminate(session.pid);
     }
     if let Some(pid) = xvfb_pid_to_terminate_with(control, session) {
@@ -106,26 +120,56 @@ pub(crate) fn xvfb_pid_to_terminate_with(
     Some(pid)
 }
 
-pub(crate) fn chrome_cmdline_matches(cmdline: &[String], session: &SessionMetadata) -> bool {
-    let Some(port) = Url::parse(&session.http_url)
-        .ok()
-        .and_then(|url| url.port())
-    else {
-        return false;
-    };
-    let port_argument = format!("--remote-debugging-port={port}");
+pub(crate) fn chrome_process_identity_matches(
+    cmdline: &[String],
+    active_debug_port: Option<u16>,
+    session: &SessionMetadata,
+) -> bool {
+    match chrome_debug_port_mode(cmdline, session) {
+        Some(DebugPortMode::Fixed) => true,
+        Some(DebugPortMode::Dynamic) => active_debug_port == session_debug_port(session),
+        None => false,
+    }
+}
+
+fn chrome_debug_port_mode(cmdline: &[String], session: &SessionMetadata) -> Option<DebugPortMode> {
+    let port = session_debug_port(session)?;
     let profile_argument = format!("--user-data-dir={}", session.user_data_dir.display());
-    has_argument(cmdline, &port_argument) && has_argument(cmdline, &profile_argument)
+    if !has_argument(cmdline, &profile_argument) {
+        return None;
+    }
+    let fixed_port_argument = format!("--remote-debugging-port={port}");
+    if has_argument(cmdline, &fixed_port_argument) {
+        return Some(DebugPortMode::Fixed);
+    }
+    has_argument(cmdline, DYNAMIC_DEBUG_PORT_ARGUMENT).then_some(DebugPortMode::Dynamic)
+}
+
+fn session_debug_port(session: &SessionMetadata) -> Option<u16> {
+    Url::parse(&session.http_url).ok()?.port()
+}
+
+fn read_active_debug_port(session: &SessionMetadata) -> Option<u16> {
+    FileDebugPortReader
+        .read(&session.user_data_dir)
+        .map(|active_port| active_port.port())
+}
+
+#[derive(Clone, Copy)]
+enum DebugPortMode {
+    Fixed,
+    Dynamic,
 }
 
 async fn wait_for_chrome_exit(
     control: &dyn ProcessControl,
+    active_debug_port: Option<u16>,
     session: &SessionMetadata,
     timeout: Duration,
 ) -> bool {
     let started = tokio::time::Instant::now();
     loop {
-        if !chrome_process_is_running(control, session) {
+        if !chrome_process_is_running(control, active_debug_port, session) {
             return true;
         }
         if started.elapsed() >= timeout {
@@ -135,10 +179,14 @@ async fn wait_for_chrome_exit(
     }
 }
 
-fn chrome_process_is_running(control: &dyn ProcessControl, session: &SessionMetadata) -> bool {
-    control
-        .command_line(session.pid)
-        .is_some_and(|cmdline| chrome_cmdline_matches(&cmdline, session))
+fn chrome_process_is_running(
+    control: &dyn ProcessControl,
+    active_debug_port: Option<u16>,
+    session: &SessionMetadata,
+) -> bool {
+    control.command_line(session.pid).is_some_and(|cmdline| {
+        chrome_process_identity_matches(&cmdline, active_debug_port, session)
+    })
 }
 
 fn has_argument(cmdline: &[String], expected: &str) -> bool {

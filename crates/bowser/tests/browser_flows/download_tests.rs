@@ -72,8 +72,7 @@ async fn browser_native_download_reports_navigation_start_failures() {
     let _guard = support::browser_test_guard();
     let session_dir = tempdir().expect("session dir");
     let downloads_dir = tempdir().expect("downloads dir");
-    let mut config = support::test_config(session_dir.path());
-    config.timeout = std::time::Duration::from_secs(1);
+    let config = support::test_config(session_dir.path());
     let browser = Browser::launch(config).await.expect("launch browser");
     let page = browser.current_page().await.expect("page");
     let destination = downloads_dir.path().join("invalid.csv");
@@ -82,14 +81,7 @@ async fn browser_native_download_reports_navigation_start_failures() {
         .download("http://[::1", &destination)
         .await
         .expect_err("invalid download URL");
-    assert!(
-        matches!(
-            error,
-            Error::Download { ref reason }
-                if reason.contains("failed to start browser download")
-        ),
-        "unexpected download error: {error}"
-    );
+    assert!(matches!(error, Error::DownloadStart { .. }));
 
     browser.close().await.expect("close browser");
 }

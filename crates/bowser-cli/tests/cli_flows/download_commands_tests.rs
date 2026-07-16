@@ -6,7 +6,7 @@ use super::support;
 async fn download_command_saves_browser_native_file() {
     let _guard = support::browser_test_guard();
     let server = support::spawn_server().await;
-    let session_dir = tempdir().expect("session dir");
+    let session_dir = support::test_session_dir();
     let downloads_dir = tempdir().expect("downloads dir");
     let chrome_path = support::chrome_path();
     let destination = downloads_dir.path().join("report.csv");
@@ -41,7 +41,7 @@ async fn download_command_saves_browser_native_file() {
 async fn download_command_saves_current_page_link_target() {
     let _guard = support::browser_test_guard();
     let server = support::spawn_server().await;
-    let session_dir = tempdir().expect("session dir");
+    let session_dir = support::test_session_dir();
     let downloads_dir = tempdir().expect("downloads dir");
     let chrome_path = support::chrome_path();
 

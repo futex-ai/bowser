@@ -1,12 +1,10 @@
-use tempfile::tempdir;
-
 use super::super::support;
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn supports_get_expand_meta_and_all_mode_commands() {
     let _guard = support::browser_test_guard();
     let server = support::spawn_server().await;
-    let session_dir = tempdir().expect("session dir");
+    let session_dir = support::test_session_dir();
     let chrome_path = support::chrome_path();
 
     let get_output = support::run_bowser_with_retry(
@@ -141,7 +139,7 @@ async fn supports_get_expand_meta_and_all_mode_commands() {
 async fn get_accepts_bare_loopback_hosts() {
     let _guard = support::browser_test_guard();
     let server = support::spawn_server().await;
-    let session_dir = tempdir().expect("session dir");
+    let session_dir = support::test_session_dir();
     let chrome_path = support::chrome_path();
     let bare_simple_url = server
         .url("/simple")
@@ -171,7 +169,7 @@ async fn get_accepts_bare_loopback_hosts() {
 async fn get_supports_full_rendered_html_output() {
     let _guard = support::browser_test_guard();
     let server = support::spawn_server().await;
-    let session_dir = tempdir().expect("session dir");
+    let session_dir = support::test_session_dir();
     let chrome_path = support::chrome_path();
 
     let output = support::run_bowser_with_retry(
@@ -200,7 +198,7 @@ async fn expand_session_preserves_target_backed_iframe_content() {
     let _guard = support::browser_test_guard();
     let parent_server = support::spawn_server().await;
     let child_server = support::spawn_server().await;
-    let session_dir = tempdir().expect("session dir");
+    let session_dir = support::test_session_dir();
     let chrome_path = support::chrome_path();
 
     let child_url = child_server

@@ -31,7 +31,7 @@ Session behaviour:
 2. `bowser interactive` creates or resumes a session, runs the REPL, then detaches on `quit` / `exit`.
 3. Once a single-shot command has created or resumed a session, Bowser detaches and prints the active session ID to `stderr` as `Session: <ID>` even if later navigation, capture, screenshot, rendering, or output fails. The original command error remains the command result, while the session ID keeps the intentionally running browser discoverable and resumable.
 4. Detached sessions remain resumable until they are explicitly closed or their idle TTL expires.
-5. Before resuming, Bowser confirms that the stored PID still exposes the session's exact remote-debugging port and user-data directory. A missing or reused process identity fails closed instead of connecting to whatever now owns the stored port.
+5. Before resuming, Bowser confirms that the stored PID still exposes the session's exact user-data directory and launch mode. For current dynamic-port sessions, the profile-local active port must also match the persisted endpoint; legacy fixed-port sessions retain exact argument validation. A missing or reused process identity fails closed instead of connecting to whatever now owns the stored port.
 6. Resuming a valid session with a new command continues from the current browser state before applying any new navigation or interaction requested by that command.
 
 ## Session Pages

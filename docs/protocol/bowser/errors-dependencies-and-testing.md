@@ -122,6 +122,9 @@ pub enum Error {
     #[error("[bowser/download] download failed: {reason}")]
     Download { reason: String },
 
+    #[error("[bowser/download] failed to start browser download: {source}")]
+    DownloadStart { source: chromiumoxide::error::CdpError },
+
     #[error("[bowser/download] download timed out after {seconds}s")]
     DownloadTimeout { seconds: u64 },
 
@@ -255,20 +258,21 @@ typed command-layer failures for output, REPL, and pointer-log handling.
 
 - **Capture/flattening logic**: test the DOM-to-element-tree transformation with mock DOM JSON inputs. Verify flattening rules, root visible/obscured splitting, wrapper promotion, and text merging.
 - **YAML/JSON serialization**: snapshot tests for compact YAML output and full-fidelity round-trip tests for JSON.
-- **Config parsing**: test precedence rules, defaults, and invalid config handling.
-- **Session lifecycle**: test session ID generation, path confinement, filename/document identity, metadata persistence, TTL expiry, resume identity validation, fresh-launch rollback, stale-PID-safe cleanup through mocked process control, and owned-profile cleanup through mocked directory control.
+- **Config parsing**: test precedence rules, defaults, invalid config handling, and positive viewport dimensions after final config merging.
+- **Session lifecycle**: test session ID generation, path confinement, filename/document identity, metadata persistence, TTL expiry, dynamic debug-port handshake parsing, resume identity validation, fresh-launch rollback, stale-PID-safe cleanup through mocked process control, and owned-profile cleanup through mocked directory control.
 - **Session page management**: test stable page-ID assignment, selected-page persistence, legacy single-page metadata migration, and page-summary generation.
 - **Truncation logic**: test preview limits for lists, tables, and container children, plus emitted `truncation` metadata.
 - **Stealth patch generation**: verify the JS patches are syntactically valid.
 - **Expansion handling**: test expandable-element ID assignment, invalid-element-ID errors, and full-node expansion after truncated capture.
 - **Metadata and describe handling**: test `meta` lookups for links, images, and non-interactive containers, including live visibility details, `describable` capability, explicit `describe` output, and invalid-element-ID errors.
-- **REPL command parsing**: test all interactive commands parse correctly, including edge cases (quoted strings, missing arguments), plus prompt interrupt and suggestion behaviour.
+- **REPL command parsing**: test all interactive commands parse correctly, including quoted strings, missing arguments, and rejected trailing arguments for fixed-form commands, plus prompt interrupt and suggestion behaviour.
 
 Unit tests focus on pure helpers, serialization, config merging, session persistence, REPL parsing/completion, and AI provider plumbing with mocked local HTTP endpoints.
 
 ### Integration Tests
 
 - Launch a real headless Chrome against a local test HTML server.
+- Verify fresh launch lets Chrome choose its debugging port and detach/resume preserves the selected endpoint and profile identity.
 - Keep routine Bowser CLI browser tests non-headed by setting `BOWSER_INTERNAL_STEALTH_FEATURES=-launch-headed,-launch-native-window` in the test command helpers; this preserves the rest of the default stealth behavior while avoiding headed CI windows.
 - Verify full pipeline: navigate → capture → verify YAML structure.
 - Verify `bowser get` prints a resumable session ID and a later command can resume the same browser session.
@@ -294,6 +298,7 @@ Unit tests focus on pure helpers, serialization, config merging, session persist
 - Mock AI providers in automated tests so the suite does not require external credentials or network access.
 - Provision Chrome/Chromium in CI so the browser-backed integration suite runs consistently, and allow local override with `BOWSER_TEST_CHROME_PATH` during development.
 - Keep routine Bowser doctests and browser-running tests headless by forcing `BOWSER_HEADLESS=true` and `BOWSER_INTERNAL_STEALTH_FEATURES=-launch-headed,-launch-native-window` at the check-plan, CI, and shared CLI test-helper boundaries.
+- Give every CLI and REPL browser test a temporary session-root guard that reads its own persisted metadata and performs bounded process cleanup on drop, including panic paths, so detached test sessions cannot accumulate across targets.
 - Keep the live Google captcha regression test ignored by default. Run it explicitly with `BOWSER_GOOGLE_SMOKE=1 cargo test -p bowser-cli --test interactive_repl google_search_flow_avoids_captcha -- --ignored --nocapture`; that test passes `--headed` explicitly.
 
 ### Test HTML Server

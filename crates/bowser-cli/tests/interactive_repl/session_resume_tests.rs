@@ -2,17 +2,15 @@
 
 use std::fs;
 
-use expectrl::{Expect, Regex};
-use tempfile::tempdir;
-
 use super::support;
+use expectrl::{Expect, Regex};
 
 #[test]
 fn repl_supports_expand_meta_separator_and_resume() {
     let _guard = support::browser_test_guard();
     let runtime = tokio::runtime::Runtime::new().expect("runtime");
     let server = runtime.block_on(support::spawn_server());
-    let session_dir = tempdir().expect("session dir");
+    let session_dir = support::test_session_dir();
     let chrome_path = support::chrome_path();
     let binary = support::binary_path();
 
@@ -155,7 +153,7 @@ fn all_mode_repl_shows_hidden_elements() {
     let _guard = support::browser_test_guard();
     let runtime = tokio::runtime::Runtime::new().expect("runtime");
     let server = runtime.block_on(support::spawn_server());
-    let session_dir = tempdir().expect("session dir");
+    let session_dir = support::test_session_dir();
     let chrome_path = support::chrome_path();
     let binary = support::binary_path();
 

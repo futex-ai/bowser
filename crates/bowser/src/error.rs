@@ -148,6 +148,14 @@ pub enum Error {
     #[error("[bowser/download] download failed: {reason}")]
     Download { reason: String },
 
+    /// Chrome rejected the navigation used to initiate a browser-native download.
+    #[error("[bowser/download] failed to start browser download: {source}")]
+    DownloadStart {
+        /// Chrome DevTools Protocol failure returned by the navigation assignment.
+        #[source]
+        source: chromiumoxide::error::CdpError,
+    },
+
     #[error("[bowser/download] download timed out after {seconds}s")]
     DownloadTimeout { seconds: u64 },
 

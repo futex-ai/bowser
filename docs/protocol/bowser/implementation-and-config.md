@@ -77,7 +77,9 @@ If Chrome reports that the target session is missing during that validation, Bow
 
 Freshly spawned Chrome and Xvfb processes remain behind an armed ownership guard while Bowser connects to Chrome and persists session metadata. A generated ephemeral profile remains behind a parallel directory guard. An error at either boundary terminates every newly owned process and removes the unfinished profile; both guards are disarmed only after metadata persistence succeeds.
 
-Persisted PIDs are not proof of ownership because operating systems reuse them. Resume, close, and expiry inspect the live process command line. Chrome must retain the session's exact `--remote-debugging-port` and `--user-data-dir` arguments before Bowser connects or sends a termination signal. Resume fails with `SessionProcessIdentityMismatch` when inspection fails or the identity differs. Cleanup skips a mismatched PID. A matching Chrome process receives a graceful termination request and a bounded exit wait; if it retains the exact session identity, cleanup force-terminates it and waits again before profile deletion. Xvfb must retain both the Xvfb program identity and stored display argument. Metadata remains available for retry if the validated process still does not exit.
+Fresh Chrome processes receive `--remote-debugging-port=0`. Bowser snapshots any old profile-local `DevToolsActivePort` content before spawning, waits for a different complete handshake, and verifies Chrome's chosen loopback endpoint before connecting. This keeps port allocation owned by Chrome for the entire bind operation rather than releasing a temporary reservation before launch.
+
+Persisted PIDs are not proof of ownership because operating systems reuse them. Resume, close, and expiry inspect the live process command line. Dynamic-port Chrome must retain `--remote-debugging-port=0` and the exact `--user-data-dir`, while the profile handshake's selected port must match the persisted HTTP endpoint before Bowser connects or sends a termination signal. Legacy fixed-port sessions must retain the exact persisted port and profile arguments. Resume fails with `SessionProcessIdentityMismatch` when inspection fails or the identity differs. Cleanup skips a mismatched PID. A matching Chrome process receives a graceful termination request and a bounded exit wait; if it retains the snapshotted session identity, cleanup force-terminates it and waits again before profile deletion. Xvfb must retain both the Xvfb program identity and stored display argument. Metadata remains available for retry if the validated process still does not exit.
 
 Persisted profile ownership is also explicit rather than inferred from an arbitrary path. `SessionMetadata::owns_user_data_dir` defaults to `false` for legacy documents and is set only for fresh, non-persistent, non-explicit profiles. Cleanup requires the configured session root and rejects an owned path unless it is one UUID-named direct child of `<session-root>/profiles`; metadata remains available for a later retry when profile removal fails.
 
@@ -149,7 +151,7 @@ The following environment variables are recognized:
 - `BOWSER_AI_API_KEY_ENV`
 - `BOWSER_AI_ENDPOINT`
 
-Boolean environment variables accept `true` / `false`. `BOWSER_VIEWPORT` uses the same `WIDTHxHEIGHT` format as the CLI flag.
+Boolean environment variables accept `true` / `false`. `BOWSER_VIEWPORT` uses the same `WIDTHxHEIGHT` format as the CLI flag. Viewport width and height must both be greater than zero. Bowser validates the final merged configuration, including direct library overrides, before launching Chrome or Xvfb.
 
 Profile-path precedence is:
 

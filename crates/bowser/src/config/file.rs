@@ -8,6 +8,7 @@ use serde::Deserialize;
 use super::defaults::default_config_path;
 use super::overrides::{apply_env, apply_overrides};
 use super::types::{AiProvider, BrowserConfig, ConfigOverrides};
+use super::validation::validate_config;
 use crate::error::{Error, Result};
 use crate::model::Viewport;
 
@@ -78,6 +79,7 @@ pub fn load_config(
     }
     apply_env(&mut config)?;
     apply_overrides(&mut config, overrides);
+    validate_config(&config)?;
     Ok(config)
 }
 

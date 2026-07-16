@@ -1,10 +1,38 @@
+use tempfile::tempdir;
+
 use super::{AiProvider, BrowserConfig, ConfigOverrides, load_config, parse_viewport};
+use crate::model::Viewport;
 
 #[test]
 fn parses_viewport() {
     let viewport = parse_viewport("1280x720").expect("viewport");
     assert_eq!(viewport.width, 1280);
     assert_eq!(viewport.height, 720);
+}
+
+#[test]
+fn rejects_zero_viewport_dimensions() {
+    assert!(parse_viewport("0x720").is_err());
+    assert!(parse_viewport("1280x0").is_err());
+}
+
+#[test]
+fn rejects_zero_viewport_from_final_config_overrides() {
+    let config_dir = tempdir().expect("config dir");
+    let config_path = config_dir.path().join("missing.yaml");
+    let error = load_config(
+        Some(&config_path),
+        ConfigOverrides {
+            viewport: Some(Viewport {
+                width: 1280,
+                height: 0,
+            }),
+            ..ConfigOverrides::default()
+        },
+    )
+    .expect_err("zero viewport height");
+
+    assert!(matches!(error, crate::error::Error::Config { .. }));
 }
 
 #[test]

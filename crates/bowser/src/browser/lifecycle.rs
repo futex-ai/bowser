@@ -1,10 +1,9 @@
 //! Chrome launch, attach, and configuration helpers.
 
 use std::{
-    net::TcpListener,
     path::{Path, PathBuf},
     process::{Command, Stdio},
-    time::{Duration, Instant},
+    time::Duration,
 };
 
 #[cfg(unix)]
@@ -16,6 +15,9 @@ use futures::StreamExt;
 use crate::{
     browser_identity,
     config::BrowserConfig,
+    debug_port::{
+        DYNAMIC_DEBUG_PORT_ARGUMENT, DebugPortReader, FileDebugPortReader, discover_debug_endpoint,
+    },
     error::{Error, Result},
     session::{LaunchedProcessGuard, SessionMetadata, terminate_process},
     stealth_features::StealthFeatures,
@@ -48,14 +50,6 @@ pub(super) fn resolve_chrome_path(path: Option<&Path>) -> Result<PathBuf> {
     })
 }
 
-pub(super) fn allocate_port() -> Result<u16> {
-    TcpListener::bind("127.0.0.1:0")
-        .map_err(|err| Error::io("allocate debug port", err))?
-        .local_addr()
-        .map(|addr| addr.port())
-        .map_err(|err| Error::io("read allocated port", err))
-}
-
 pub(super) fn resolve_user_data_dir(config: &BrowserConfig, session_root: &Path) -> PathBuf {
     if let Some(path) = config.user_data_dir.clone() {
         return path;
@@ -75,7 +69,6 @@ pub(super) fn owns_user_data_dir(config: &BrowserConfig) -> bool {
 pub(super) fn build_chrome_args(
     config: &BrowserConfig,
     user_data_dir: &Path,
-    port: u16,
     synthetic_display: bool,
 ) -> Vec<String> {
     let mut args = Vec::new();
@@ -85,15 +78,15 @@ pub(super) fn build_chrome_args(
     args.extend(browser_identity::stealth_launch_args(config.stealth));
     args.push("--no-first-run".to_string());
     args.push("--no-default-browser-check".to_string());
-    args.push(format!("--remote-debugging-port={port}"));
     if force_window_size(config, synthetic_display) {
         args.push(format!(
             "--window-size={},{}",
             config.viewport.width, config.viewport.height
         ));
     }
-    args.push(format!("--user-data-dir={}", user_data_dir.display()));
     args.extend(config.chrome_args.iter().cloned());
+    args.push(DYNAMIC_DEBUG_PORT_ARGUMENT.to_string());
+    args.push(format!("--user-data-dir={}", user_data_dir.display()));
     args
 }
 
@@ -115,7 +108,6 @@ pub(super) async fn launch_chrome(
     config: &BrowserConfig,
     chrome_path: &Path,
     user_data_dir: &Path,
-    port: u16,
 ) -> Result<(
     u32,
     String,
@@ -123,11 +115,13 @@ pub(super) async fn launch_chrome(
     Option<XvfbSession>,
     LaunchedProcessGuard,
 )> {
+    let debug_port_reader = FileDebugPortReader;
+    let previous_debug_port = debug_port_reader.read(user_data_dir);
     let display = prepare_headed_display(config)?;
     let mut command = Command::new(chrome_path);
     #[cfg(unix)]
     command.process_group(0);
-    for arg in build_chrome_args(config, user_data_dir, port, display.xvfb.is_some()) {
+    for arg in build_chrome_args(config, user_data_dir, display.xvfb.is_some()) {
         command.arg(arg);
     }
     if let Some(display_env) = display.display_env.as_deref() {
@@ -152,49 +146,14 @@ pub(super) async fn launch_chrome(
     let pid = child.id();
     let process_guard =
         LaunchedProcessGuard::system(pid, display.xvfb.as_ref().map(|xvfb| xvfb.pid));
-    let http_url = format!("http://127.0.0.1:{port}");
-    wait_for_debug_endpoint(&http_url, config.timeout).await?;
-    let websocket_url = fetch_websocket_url(&http_url).await?;
+    let (http_url, websocket_url) = discover_debug_endpoint(
+        &debug_port_reader,
+        user_data_dir,
+        previous_debug_port.as_ref(),
+        config.timeout,
+    )
+    .await?;
     Ok((pid, http_url, websocket_url, display.xvfb, process_guard))
-}
-
-async fn wait_for_debug_endpoint(http_url: &str, timeout: Duration) -> Result<()> {
-    let client = reqwest::Client::new();
-    let start = Instant::now();
-    while start.elapsed() < timeout {
-        if client
-            .get(format!("{http_url}/json/version"))
-            .send()
-            .await
-            .map(|response| response.status().is_success())
-            .unwrap_or(false)
-        {
-            return Ok(());
-        }
-        tokio::time::sleep(Duration::from_millis(100)).await;
-    }
-    Err(Error::BrowserLaunch {
-        reason: "timed out waiting for Chrome debug endpoint".to_string(),
-    })
-}
-
-async fn fetch_websocket_url(http_url: &str) -> Result<String> {
-    let response: serde_json::Value = reqwest::get(format!("{http_url}/json/version"))
-        .await
-        .map_err(|err| Error::BrowserLaunch {
-            reason: format!("failed to query debug endpoint: {err}"),
-        })?
-        .json()
-        .await
-        .map_err(|err| Error::BrowserLaunch {
-            reason: format!("failed to parse debug endpoint: {err}"),
-        })?;
-    response["webSocketDebuggerUrl"]
-        .as_str()
-        .map(ToString::to_string)
-        .ok_or_else(|| Error::BrowserLaunch {
-            reason: "debug endpoint missing webSocketDebuggerUrl".to_string(),
-        })
 }
 
 pub(super) async fn connect_browser(

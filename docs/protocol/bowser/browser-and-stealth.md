@@ -33,6 +33,12 @@ Bowser uses [`chromiumoxide`](https://github.com/mattsse/chromiumoxide) for brow
 
 [`chaser-oxide`](https://github.com/nicholasgasior/chaser-oxide) is a `chromiumoxide` fork with protocol-level stealth (fingerprint profiles, Bezier mouse movement, realistic typing). As of early 2026 it is at 0.1.x with 238 stars. If it matures, Bowser could migrate with minimal API changes since it shares the `chromiumoxide` API surface. For now, the risk of depending on a 3-month-old fork outweighs the benefit.
 
+## Chrome Launch and Debug Endpoint
+
+Fresh sessions launch Chrome with `--remote-debugging-port=0` so Chrome owns the ephemeral-port allocation without a bind-and-release race. Bowser snapshots any existing profile-local `DevToolsActivePort` file before launch, waits for a different complete handshake containing a non-zero port and browser WebSocket path, and then verifies the selected loopback endpoint through `/json/version` within the configured launch timeout. A stale, incomplete, oversized, symlinked, or non-file handshake must not be accepted.
+
+Detached metadata persists the assigned HTTP and WebSocket endpoints. A dynamic-port session may be resumed or terminated only when the stored PID still has the dynamic-port and exact profile arguments and the profile handshake's current port matches the persisted HTTP endpoint. Legacy metadata whose Chrome process has the exact persisted fixed-port argument remains resumable.
+
 ## Stealth
 
 Bowser applies best-effort stealth measures to reduce common headless-browser fingerprints. The following patches are applied via `Page.addScriptToEvaluateOnNewDocument` before any page navigation:

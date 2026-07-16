@@ -1,12 +1,10 @@
-use tempfile::tempdir;
-
 use super::super::support;
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn image_get_meta_and_describe_use_filename_and_ai_capability() {
     let _guard = support::browser_test_guard();
     let server = support::spawn_server().await;
-    let session_dir = tempdir().expect("session dir");
+    let session_dir = support::test_session_dir();
     let chrome_path = support::chrome_path();
 
     let get_without_key = support::bowser_command()

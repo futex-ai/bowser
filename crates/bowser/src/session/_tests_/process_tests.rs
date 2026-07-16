@@ -9,7 +9,7 @@ use unimock::{MockFn, Unimock, matching};
 use crate::error::Error;
 
 use super::cleanup::{
-    chrome_cmdline_matches, terminate_session_processes_and_wait_with,
+    chrome_process_identity_matches, terminate_session_processes_and_wait_with,
     terminate_session_processes_with, validate_session_process_identity_with,
     xvfb_pid_to_terminate_with,
 };
@@ -25,7 +25,7 @@ fn cleanup_skips_a_reused_chrome_pid() {
             .returns(Some(vec!["/usr/bin/sleep".to_string(), "100".to_string()])),
     );
 
-    terminate_session_processes_with(&control, &session);
+    terminate_session_processes_with(&control, None, &session);
 }
 
 #[test]
@@ -44,7 +44,36 @@ fn cleanup_terminates_chrome_only_when_its_launch_identity_matches() {
             .returns(()),
     ));
 
-    terminate_session_processes_with(&control, &session);
+    terminate_session_processes_with(&control, None, &session);
+}
+
+#[test]
+fn cleanup_requires_the_dynamic_active_port_identity() {
+    let session = metadata(3333);
+    let matching_control = Unimock::new((
+        ProcessControlMock::command_line
+            .next_call(matching!(3333))
+            .returns(Some(vec![
+                "/usr/bin/google-chrome".to_string(),
+                "--remote-debugging-port=0".to_string(),
+                "--user-data-dir=/tmp/bowser-profile".to_string(),
+            ])),
+        ProcessControlMock::terminate
+            .next_call(matching!(3333))
+            .returns(()),
+    ));
+    terminate_session_processes_with(&matching_control, Some(9222), &session);
+
+    let mismatched_control = Unimock::new(
+        ProcessControlMock::command_line
+            .next_call(matching!(3333))
+            .returns(Some(vec![
+                "/usr/bin/google-chrome".to_string(),
+                "--remote-debugging-port=0".to_string(),
+                "--user-data-dir=/tmp/bowser-profile".to_string(),
+            ])),
+    );
+    terminate_session_processes_with(&mismatched_control, Some(9333), &session);
 }
 
 #[test]
@@ -76,8 +105,16 @@ fn chrome_identity_requires_the_expected_port_and_profile() {
         "--user-data-dir=/tmp/other-profile".to_string(),
     ];
 
-    assert!(!chrome_cmdline_matches(&wrong_port, &session));
-    assert!(!chrome_cmdline_matches(&wrong_profile, &session));
+    assert!(!chrome_process_identity_matches(
+        &wrong_port,
+        None,
+        &session
+    ));
+    assert!(!chrome_process_identity_matches(
+        &wrong_profile,
+        None,
+        &session
+    ));
 }
 
 #[test]
@@ -88,7 +125,7 @@ fn chrome_identity_accepts_quoted_arguments_from_process_listing() {
             .to_string(),
     ];
 
-    assert!(chrome_cmdline_matches(&combined, &session));
+    assert!(chrome_process_identity_matches(&combined, None, &session));
 }
 
 #[test]
@@ -100,7 +137,7 @@ fn session_resume_rejects_a_reused_process_identity() {
             .returns(Some(vec!["/usr/bin/sleep".to_string(), "100".to_string()])),
     );
 
-    let error = validate_session_process_identity_with(&control, &session)
+    let error = validate_session_process_identity_with(&control, None, &session)
         .expect_err("reused process must not be resumed");
 
     assert!(matches!(
@@ -122,8 +159,41 @@ fn session_resume_accepts_the_persisted_process_identity() {
             ])),
     );
 
-    validate_session_process_identity_with(&control, &session)
+    validate_session_process_identity_with(&control, None, &session)
         .expect("matching process can be resumed");
+}
+
+#[test]
+fn session_resume_requires_the_dynamic_active_port_identity() {
+    let session = metadata(3333);
+    let matching_control = Unimock::new(
+        ProcessControlMock::command_line
+            .next_call(matching!(3333))
+            .returns(Some(vec![
+                "/usr/bin/google-chrome".to_string(),
+                "--remote-debugging-port=0".to_string(),
+                "--user-data-dir=/tmp/bowser-profile".to_string(),
+            ])),
+    );
+    validate_session_process_identity_with(&matching_control, Some(9222), &session)
+        .expect("matching dynamic port can be resumed");
+
+    let mismatched_control = Unimock::new(
+        ProcessControlMock::command_line
+            .next_call(matching!(3333))
+            .returns(Some(vec![
+                "/usr/bin/google-chrome".to_string(),
+                "--remote-debugging-port=0".to_string(),
+                "--user-data-dir=/tmp/bowser-profile".to_string(),
+            ])),
+    );
+    let error = validate_session_process_identity_with(&mismatched_control, Some(9333), &session)
+        .expect_err("mismatched dynamic port must not be resumed");
+
+    assert!(matches!(
+        error,
+        Error::SessionProcessIdentityMismatch { .. }
+    ));
 }
 
 #[tokio::test]
@@ -157,6 +227,7 @@ async fn cleanup_forces_chrome_after_graceful_exit_timeout() {
 
     terminate_session_processes_and_wait_with(
         &control,
+        None,
         &session,
         std::time::Duration::ZERO,
         std::time::Duration::ZERO,

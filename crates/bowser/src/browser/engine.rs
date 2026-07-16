@@ -6,7 +6,7 @@ use async_trait::async_trait;
 use tokio::sync::Mutex;
 
 use crate::{
-    config::BrowserConfig,
+    config::{BrowserConfig, validate_config},
     error::Result,
     model::{SessionInfo, SessionPageSummary},
     page::PageEngine,
@@ -19,7 +19,7 @@ use crate::{
 
 use super::{
     lifecycle::{
-        allocate_port, connect_browser, launch_chrome, owns_user_data_dir, resolve_chrome_path,
+        connect_browser, launch_chrome, owns_user_data_dir, resolve_chrome_path,
         resolve_user_data_dir, validate_session_age,
     },
     state::BrowserState,
@@ -72,6 +72,7 @@ impl Browser {
         config: BrowserConfig,
         store: Arc<dyn SessionStore>,
     ) -> Result<Self> {
+        validate_config(&config)?;
         let session_root = config
             .session
             .dir
@@ -107,9 +108,8 @@ impl Browser {
                 )?;
                 std::fs::create_dir_all(&user_data_dir)
                     .map_err(|err| crate::error::Error::io("create user data directory", err))?;
-                let port = allocate_port()?;
                 let (pid, http_url, websocket_url, xvfb, mut process_guard) =
-                    launch_chrome(&config, &chrome_path, &user_data_dir, port).await?;
+                    launch_chrome(&config, &chrome_path, &user_data_dir).await?;
                 let mut metadata = crate::session::SessionMetadata::new(
                     http_url.clone(),
                     websocket_url,

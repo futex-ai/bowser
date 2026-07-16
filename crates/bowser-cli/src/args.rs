@@ -258,8 +258,10 @@ pub(crate) fn parse_viewport(value: &str) -> std::result::Result<bowser::Viewpor
     let (width, height) = value
         .split_once('x')
         .ok_or_else(|| "expected WIDTHxHEIGHT".to_string())?;
-    Ok(bowser::Viewport {
-        width: width.parse().map_err(|_| "invalid width".to_string())?,
-        height: height.parse().map_err(|_| "invalid height".to_string())?,
-    })
+    let width = width.parse().map_err(|_| "invalid width".to_string())?;
+    let height = height.parse().map_err(|_| "invalid height".to_string())?;
+    if width == 0 || height == 0 {
+        return Err("width and height must be greater than zero".to_string());
+    }
+    Ok(bowser::Viewport { width, height })
 }

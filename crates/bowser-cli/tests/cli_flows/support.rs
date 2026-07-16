@@ -7,6 +7,7 @@ use std::time::Duration;
 
 use assert_cmd::Command;
 
+pub(crate) use super::session_dir_support::test_session_dir;
 pub(crate) use bowser_support::{browser_test_guard, chrome_path, spawn_server};
 
 const HEADLESS_STEALTH_FEATURES: &str = "-launch-headed,-launch-native-window";

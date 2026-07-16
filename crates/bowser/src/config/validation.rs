@@ -1,6 +1,6 @@
 //! Parsing helpers for config values and overrides.
 
-use crate::config::types::AiProvider;
+use crate::config::types::{AiProvider, BrowserConfig};
 use crate::error::{Error, Result};
 use crate::model::Viewport;
 
@@ -28,14 +28,29 @@ pub(crate) fn parse_viewport(value: &str) -> Result<Viewport> {
     let (width, height) = value
         .split_once('x')
         .ok_or_else(|| Error::config("viewport must use WIDTHxHEIGHT"))?;
-    Ok(Viewport {
+    let viewport = Viewport {
         width: width
             .parse()
             .map_err(|_| Error::config("viewport width must be numeric"))?,
         height: height
             .parse()
             .map_err(|_| Error::config("viewport height must be numeric"))?,
-    })
+    };
+    validate_viewport(&viewport)?;
+    Ok(viewport)
+}
+
+pub(crate) fn validate_config(config: &BrowserConfig) -> Result<()> {
+    validate_viewport(&config.viewport)
+}
+
+fn validate_viewport(viewport: &Viewport) -> Result<()> {
+    if viewport.width == 0 || viewport.height == 0 {
+        return Err(Error::config(
+            "viewport width and height must be greater than zero",
+        ));
+    }
+    Ok(())
 }
 
 pub(super) fn parse_provider(value: &str) -> Result<AiProvider> {

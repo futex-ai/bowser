@@ -42,6 +42,8 @@ bowser>
 
 For REPL commands that take an element ID, Bowser accepts either the bare numeric ID (`12`) or the rendered YAML key form (`input#12`, `link#12`, `table#12`). When a prefix is present, Bowser ignores it and uses the numeric suffix.
 
+Fixed-form commands require exactly the arguments shown in the table. Extra tokens are invalid rather than ignored, so values containing spaces must use shell-style quotes, for example `type input#12 "hello world"` or `select select#8 "United Kingdom"`. The variable-length exceptions are `keypress <KEY...>` and the raw remainder of `js <EXPRESSION>`.
+
 ### Interactive Mode Output Behaviour
 
 After any navigation or interaction command (`goto`, `page`, `new page`, `close page`, `click`, `keypress`, `type`, `clear`, `select`, `submit`, `back`, `forward`, `reload`), Bowser automatically:

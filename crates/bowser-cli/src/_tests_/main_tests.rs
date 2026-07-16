@@ -24,6 +24,16 @@ fn cli_flags_enable_headed_and_persistent_profile_overrides() {
 }
 
 #[test]
+fn cli_rejects_zero_viewport_dimensions() {
+    for viewport in ["0x720", "1280x0", "0x0"] {
+        assert!(
+            Cli::try_parse_from(["bowser", "--viewport", viewport, "https://example.com"]).is_err(),
+            "accepted invalid viewport {viewport}"
+        );
+    }
+}
+
+#[test]
 fn pointer_log_command_parses_defaults() {
     let cli = Cli::parse_from(["bowser", "pointer-log"]);
     let Some(Command::PointerLog(args)) = cli.command else {

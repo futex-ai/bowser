@@ -11,6 +11,7 @@ pub use file::load_config;
 pub use types::{
     AiConfig, AiProvider, BrowserConfig, ConfigOverrides, OutputConfig, SessionConfig,
 };
+pub(crate) use validation::validate_config;
 
 #[cfg(any(test, doctest))]
 pub(crate) use validation::parse_viewport;

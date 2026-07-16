@@ -6,6 +6,7 @@ mod browser_identity;
 mod capture;
 mod cdp_trace;
 mod config;
+mod debug_port;
 mod error;
 mod expand;
 mod keyboard;

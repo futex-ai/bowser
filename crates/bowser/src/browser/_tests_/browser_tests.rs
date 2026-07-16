@@ -6,6 +6,7 @@ use unimock::{MockFn, Unimock, matching};
 
 use crate::config::{BrowserConfig, SessionConfig};
 use crate::error::Error;
+use crate::model::Viewport;
 use crate::session::SessionMetadata;
 use crate::session::session_tests::SessionStoreMock;
 
@@ -17,25 +18,27 @@ fn headed_launch_omits_headless_flags() {
         headless: false,
         ..BrowserConfig::default()
     };
-    let args = build_chrome_args(
-        &config,
-        PathBuf::from("/tmp/profile").as_path(),
-        9222,
-        false,
-    );
+    let args = build_chrome_args(&config, PathBuf::from("/tmp/profile").as_path(), false);
     assert!(!args.iter().any(|arg| arg == "--headless=new"));
     assert!(!args.iter().any(|arg| arg == "--disable-gpu"));
 }
 
 #[test]
-fn default_stealth_launch_uses_automation_safe_headed_shape() {
-    let config = BrowserConfig::default();
+fn chrome_launch_uses_a_browser_assigned_debug_port() {
     let args = build_chrome_args(
-        &config,
+        &BrowserConfig::default(),
         PathBuf::from("/tmp/profile").as_path(),
-        9222,
         false,
     );
+
+    assert!(args.iter().any(|arg| arg == "--remote-debugging-port=0"));
+    assert!(!args.iter().any(|arg| arg == "--remote-debugging-port=9222"));
+}
+
+#[test]
+fn default_stealth_launch_uses_automation_safe_headed_shape() {
+    let config = BrowserConfig::default();
+    let args = build_chrome_args(&config, PathBuf::from("/tmp/profile").as_path(), false);
     assert!(!args.iter().any(|arg| arg == "--headless=new"));
     assert!(!args.iter().any(|arg| arg == "--disable-gpu"));
     assert!(!args.iter().any(|arg| arg.starts_with("--window-size=")));
@@ -45,7 +48,7 @@ fn default_stealth_launch_uses_automation_safe_headed_shape() {
 #[test]
 fn xvfb_stealth_launch_uses_configured_window_size() {
     let config = BrowserConfig::default();
-    let args = build_chrome_args(&config, PathBuf::from("/tmp/profile").as_path(), 9222, true);
+    let args = build_chrome_args(&config, PathBuf::from("/tmp/profile").as_path(), true);
 
     assert!(args.iter().any(|arg| arg == "--window-size=1920,1080"));
     assert!(!args.iter().any(|arg| arg.starts_with("--window-position=")));
@@ -54,12 +57,7 @@ fn xvfb_stealth_launch_uses_configured_window_size() {
 #[test]
 fn stealth_launch_adds_automation_control_flag() {
     let config = BrowserConfig::default();
-    let args = build_chrome_args(
-        &config,
-        PathBuf::from("/tmp/profile").as_path(),
-        9222,
-        false,
-    );
+    let args = build_chrome_args(&config, PathBuf::from("/tmp/profile").as_path(), false);
     assert!(
         args.iter()
             .any(|arg| arg == "--disable-blink-features=AutomationControlled")
@@ -73,12 +71,7 @@ fn disabled_stealth_omits_automation_control_flag() {
         stealth: false,
         ..BrowserConfig::default()
     };
-    let args = build_chrome_args(
-        &config,
-        PathBuf::from("/tmp/profile").as_path(),
-        9222,
-        false,
-    );
+    let args = build_chrome_args(&config, PathBuf::from("/tmp/profile").as_path(), false);
     assert!(args.iter().any(|arg| arg == "--headless=new"));
     assert!(
         !args
@@ -177,4 +170,23 @@ async fn launch_with_store_uses_the_provided_session_store() {
         load_calls.lock().expect("load calls").as_slice(),
         ["bsr_custom"]
     );
+}
+
+#[tokio::test]
+async fn launch_with_store_rejects_zero_viewport_before_store_access() {
+    let config = BrowserConfig {
+        viewport: Viewport {
+            width: 0,
+            height: 720,
+        },
+        ..BrowserConfig::default()
+    };
+    let store = Arc::new(Unimock::new(()));
+
+    let error = match Browser::launch_with_store(config, store).await {
+        Ok(_) => panic!("zero viewport width must be rejected"),
+        Err(error) => error,
+    };
+
+    assert!(matches!(error, Error::Config { .. }));
 }

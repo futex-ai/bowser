@@ -6,10 +6,8 @@ use std::path::Path;
 use std::process::Command as ProcessCommand;
 use std::time::Duration;
 
-use expectrl::{Eof, Expect, Regex, Session, session::OsSession};
-use tempfile::tempdir;
-
 use super::support;
+use expectrl::{Eof, Expect, Regex, Session, session::OsSession};
 
 #[test]
 #[ignore = "live Google smoke test; run with BOWSER_GOOGLE_SMOKE=1"]
@@ -20,7 +18,7 @@ fn google_search_flow_avoids_captcha() {
     }
 
     let _guard = support::browser_test_guard();
-    let session_dir = tempdir().expect("session dir");
+    let session_dir = support::test_session_dir();
     let trace_path = session_dir.path().join("cdp-trace.jsonl");
     let mut repl = google_repl(session_dir.path(), &trace_path);
 

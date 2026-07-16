@@ -4,8 +4,8 @@ use crate::commands::repl_help::COMMANDS;
 use crate::error::{CliError, Result};
 
 use super::arguments::{
-    one_arg, one_arg_u32, parse_close_page, parse_id_and_value, parse_new_page, parse_screenshot,
-    parse_scroll, parse_u32,
+    no_args, one_arg, one_arg_u32, optional_u32, parse_close_page, parse_id_and_value,
+    parse_new_page, parse_screenshot, parse_scroll,
 };
 use super::command::ReplCommand;
 
@@ -23,19 +23,14 @@ pub(crate) fn parse_command(line: &str) -> Result<ReplCommand> {
     }
     match tokens[0].as_str() {
         "goto" => one_arg(&tokens, line).map(ReplCommand::Goto),
-        "back" => Ok(ReplCommand::Back),
-        "forward" => Ok(ReplCommand::Forward),
-        "reload" => Ok(ReplCommand::Reload),
-        "pages" => Ok(ReplCommand::Pages),
+        "back" => no_args(&tokens, line, ReplCommand::Back),
+        "forward" => no_args(&tokens, line, ReplCommand::Forward),
+        "reload" => no_args(&tokens, line, ReplCommand::Reload),
+        "pages" => no_args(&tokens, line, ReplCommand::Pages),
         "page" => one_arg(&tokens, line).map(ReplCommand::Page),
         "new" => parse_new_page(&tokens, line),
         "close" => parse_close_page(&tokens, line),
-        "yaml" => Ok(ReplCommand::Yaml(
-            tokens
-                .get(1)
-                .map(|value| parse_u32(value, line))
-                .transpose()?,
-        )),
+        "yaml" => optional_u32(&tokens, line).map(ReplCommand::Yaml),
         "click" => one_arg_u32(&tokens, line).map(ReplCommand::Click),
         "keypress" => parse_keypress(&tokens, line),
         "type" => parse_id_and_value(&tokens, line).map(|(id, value)| ReplCommand::Type(id, value)),
@@ -47,16 +42,16 @@ pub(crate) fn parse_command(line: &str) -> Result<ReplCommand> {
         "scroll" => parse_scroll(&tokens, line),
         "screenshot" => parse_screenshot(&tokens, line),
         "wait" => one_arg(&tokens, line).map(ReplCommand::Wait),
-        "refresh" => Ok(ReplCommand::Refresh),
+        "refresh" => no_args(&tokens, line, ReplCommand::Refresh),
         "expand" => one_arg_u32(&tokens, line).map(ReplCommand::Expand),
         "meta" => one_arg_u32(&tokens, line).map(ReplCommand::Meta),
         "describe" => one_arg_u32(&tokens, line).map(ReplCommand::Describe),
-        "session" => Ok(ReplCommand::Session),
-        "url" => Ok(ReplCommand::Url),
-        "title" => Ok(ReplCommand::Title),
-        "html" => Ok(ReplCommand::Html),
-        "help" => Ok(ReplCommand::Help),
-        "quit" | "exit" => Ok(ReplCommand::Quit),
+        "session" => no_args(&tokens, line, ReplCommand::Session),
+        "url" => no_args(&tokens, line, ReplCommand::Url),
+        "title" => no_args(&tokens, line, ReplCommand::Title),
+        "html" => no_args(&tokens, line, ReplCommand::Html),
+        "help" => no_args(&tokens, line, ReplCommand::Help),
+        "quit" | "exit" => no_args(&tokens, line, ReplCommand::Quit),
         other => Err(CliError::InvalidCommand {
             input: if let Some(suggestion) = suggest_command(other) {
                 format!("{line} (did you mean `{suggestion}`?)")

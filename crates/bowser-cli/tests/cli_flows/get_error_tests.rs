@@ -1,15 +1,13 @@
 use std::fs;
 use std::path::Path;
 
-use tempfile::tempdir;
-
 use super::support;
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn get_reports_resumable_session_when_output_write_fails() {
     let _guard = support::browser_test_guard();
     let server = support::spawn_server().await;
-    let session_dir = tempdir().expect("session dir");
+    let session_dir = support::test_session_dir();
     let chrome_path = support::chrome_path();
     let missing_output = session_dir.path().join("missing/output.yaml");
 
@@ -65,7 +63,7 @@ async fn get_reports_resumable_session_when_output_write_fails() {
 async fn resumed_commands_detach_when_operations_or_outputs_fail() {
     let _guard = support::browser_test_guard();
     let server = support::spawn_server().await;
-    let session_dir = tempdir().expect("session dir");
+    let session_dir = support::test_session_dir();
     let chrome_path = support::chrome_path();
     let session_dir_arg = session_dir.path().to_str().expect("session dir");
     let chrome_path_arg = chrome_path.to_str().expect("chrome path");

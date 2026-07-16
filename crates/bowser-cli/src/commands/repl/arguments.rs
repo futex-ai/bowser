@@ -35,12 +35,16 @@ pub(super) fn parse_close_page(tokens: &[String], line: &str) -> Result<ReplComm
 }
 
 pub(super) fn parse_scroll(tokens: &[String], line: &str) -> Result<ReplCommand> {
-    match tokens.get(1).map(String::as_str) {
-        Some("down") => Ok(ReplCommand::Scroll(ScrollTarget::Down)),
-        Some("up") => Ok(ReplCommand::Scroll(ScrollTarget::Up)),
-        Some("to") if tokens.len() >= 3 => Ok(ReplCommand::Scroll(ScrollTarget::ToElement(
-            parse_u32(&tokens[2], line)?,
-        ))),
+    match tokens {
+        [command, direction] if command == "scroll" && direction == "down" => {
+            Ok(ReplCommand::Scroll(ScrollTarget::Down))
+        }
+        [command, direction] if command == "scroll" && direction == "up" => {
+            Ok(ReplCommand::Scroll(ScrollTarget::Up))
+        }
+        [command, target, element_id] if command == "scroll" && target == "to" => Ok(
+            ReplCommand::Scroll(ScrollTarget::ToElement(parse_u32(element_id, line)?)),
+        ),
         _ => Err(CliError::InvalidCommand {
             input: line.to_string(),
         }),
@@ -71,32 +75,44 @@ pub(super) fn parse_screenshot(tokens: &[String], line: &str) -> Result<ReplComm
 }
 
 pub(super) fn parse_id_and_value(tokens: &[String], line: &str) -> Result<(u32, String)> {
-    if tokens.len() < 3 {
-        return Err(CliError::InvalidCommand {
+    match tokens {
+        [_, element_id, value] => Ok((parse_u32(element_id, line)?, value.clone())),
+        _ => Err(CliError::InvalidCommand {
             input: line.to_string(),
-        });
+        }),
     }
-    Ok((parse_u32(&tokens[1], line)?, tokens[2].clone()))
 }
 
 pub(super) fn one_arg(tokens: &[String], line: &str) -> Result<String> {
-    tokens
-        .get(1)
-        .cloned()
-        .ok_or_else(|| CliError::InvalidCommand {
+    match tokens {
+        [_, value] => Ok(value.clone()),
+        _ => Err(CliError::InvalidCommand {
             input: line.to_string(),
-        })
+        }),
+    }
 }
 
 pub(super) fn one_arg_u32(tokens: &[String], line: &str) -> Result<u32> {
-    tokens
-        .get(1)
-        .map(|value| parse_u32(value, line))
-        .unwrap_or_else(|| {
-            Err(CliError::InvalidCommand {
-                input: line.to_string(),
-            })
-        })
+    parse_u32(&one_arg(tokens, line)?, line)
+}
+
+pub(super) fn optional_u32(tokens: &[String], line: &str) -> Result<Option<u32>> {
+    match tokens {
+        [_] => Ok(None),
+        [_, value] => Ok(Some(parse_u32(value, line)?)),
+        _ => Err(CliError::InvalidCommand {
+            input: line.to_string(),
+        }),
+    }
+}
+
+pub(super) fn no_args(tokens: &[String], line: &str, command: ReplCommand) -> Result<ReplCommand> {
+    if tokens.len() == 1 {
+        return Ok(command);
+    }
+    Err(CliError::InvalidCommand {
+        input: line.to_string(),
+    })
 }
 
 pub(super) fn parse_u32(value: &str, line: &str) -> Result<u32> {

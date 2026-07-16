@@ -56,6 +56,7 @@ bowser session list
 - interactive prompts are colorized, include the current page URL, and show gray inline hints that Right Arrow accepts
 - interactive `help` prints each command with usage and a one-line description
 - invalid REPL commands stay in-session: Bowser prints the error and redraws the prompt
+- fixed-form REPL commands reject trailing arguments instead of silently ignoring them; quote values that contain spaces, for example `type input#12 "hello world"`
 - in-flight REPL commands can be cancelled with `Ctrl-C`, and long-running commands time out back to the prompt instead of trapping the session; state-changing commands keep a small extra outer budget so the required post-action capture is not cut off at the page-load timeout boundary
 - REPL ID arguments accept either bare numbers (`12`) or rendered element keys such as `input#12`
 - resumed REPL startup prefers the stored selected-page preview immediately and defers any live DOM-ID rebuild until the first ID-based runtime command needs it
@@ -85,6 +86,7 @@ BOWSER_GOOGLE_SMOKE=1 cargo test -p bowser-cli --test interactive_repl google_se
 ```
 
 - Top-level CLI parsing and dispatch now live in [`src/args.rs`](./src/args.rs), [`src/cli.rs`](./src/cli.rs), and [`src/dispatch.rs`](./src/dispatch.rs), while [`src/main.rs`](./src/main.rs) stays as the thin binary entrypoint
+- CLI and merged library configuration reject zero-width or zero-height viewports before Chrome or Xvfb starts
 - The local pointer telemetry command lives in [`src/commands/pointer_log/`](./src/commands/pointer_log), shows one randomized target element at a time, appends one JSON object per event to a configurable JSONL file that defaults to the repo-root gitignored `browser-log` in manual mode, omits session IDs and user-agent strings, and records a `target_spawn` row with target bounds each time a new target is placed
 - Pointer-log demo mode starts the same loopback server, launches headed Chrome through the `bowser` library, drives the page with `PageEngine::click`, and renders an in-page cursor trail plus click pulse so CDP pointer movement is visible.
 - Stealth is conservative: Bowser cleans obvious automation leaks and keeps native Chrome fingerprint values unless a complete browser identity profile is designed and tested as one system.
@@ -97,6 +99,7 @@ BOWSER_GOOGLE_SMOKE=1 cargo test -p bowser-cli --test interactive_repl google_se
 - Browser-independent CLI coverage lives in [`tests/cli_flows/`](./tests/cli_flows), with shared command helpers in [`tests/cli_flows/support.rs`](./tests/cli_flows/support.rs)
 - PTY-backed REPL coverage lives in [`tests/interactive_repl/`](./tests/interactive_repl), with shared prompt/session helpers in [`tests/interactive_repl/support.rs`](./tests/interactive_repl/support.rs)
 - Automated CLI browser tests force `BOWSER_HEADLESS=true` while keeping stealth enabled and disabling the headed launch features through `BOWSER_INTERNAL_STEALTH_FEATURES=-launch-headed,-launch-native-window`; the live Google smoke is the only headed CLI test and remains ignored unless `BOWSER_GOOGLE_SMOKE=1` is set.
+- CLI and REPL browser tests use a shared temporary session-root guard that closes every detached test browser on drop, including assertion-failure paths, so later test targets start without inherited Chrome processes.
 - PTY-backed prompt assertions tolerate ANSI color sequences because Linux terminals render Bowser's colorized prompt in CI
 - REPL page inventory is sourced from stored session metadata so listing/switching pages does not destabilize the active Chromium page handle
 - REPL page switching and page close flows rely on bounded browser URL/title probes and stored preview fallback when Chrome still reports a stale target

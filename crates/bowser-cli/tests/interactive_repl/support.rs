@@ -2,6 +2,8 @@
 
 #[path = "../../../bowser/tests/support/mod.rs"]
 mod bowser_support;
+#[path = "../cli_flows/session_dir_support.rs"]
+mod session_dir_support;
 
 use std::fs;
 use std::path::Path;
@@ -14,6 +16,7 @@ use expectrl::session::OsSession;
 use expectrl::{Eof, Expect, Regex, Session};
 
 pub(crate) use bowser_support::{browser_test_guard, chrome_path, spawn_server};
+pub(crate) use session_dir_support::test_session_dir;
 
 pub(crate) const PROMPT_PATTERN: &str = r"bowser>(?:\x1b\[[0-9;?]*[ -/]*[@-~])* ";
 pub(crate) const HEADLESS_STEALTH_FEATURES: &str = "-launch-headed,-launch-native-window";

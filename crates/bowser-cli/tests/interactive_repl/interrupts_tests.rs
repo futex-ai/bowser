@@ -3,18 +3,16 @@
 use std::fs;
 use std::process::Command as ProcessCommand;
 
+use super::support;
 use expectrl::session::Session;
 use expectrl::{ControlCode, Expect, Regex};
-use tempfile::tempdir;
-
-use super::support;
 
 #[test]
 fn long_running_command_times_out_and_reprompts() {
     let _guard = support::browser_test_guard();
     let runtime = tokio::runtime::Runtime::new().expect("runtime");
     let server = runtime.block_on(support::spawn_server());
-    let session_dir = tempdir().expect("session dir");
+    let session_dir = support::test_session_dir();
     let chrome_path = support::chrome_path();
     let binary = support::binary_path();
 
@@ -44,7 +42,7 @@ fn ctrl_c_interrupts_in_flight_command_and_returns_prompt() {
     let _guard = support::browser_test_guard();
     let runtime = tokio::runtime::Runtime::new().expect("runtime");
     let server = runtime.block_on(support::spawn_server());
-    let session_dir = tempdir().expect("session dir");
+    let session_dir = support::test_session_dir();
     let chrome_path = support::chrome_path();
     let binary = support::binary_path();
 
@@ -76,7 +74,7 @@ fn goto_allows_post_navigation_capture_to_finish() {
     let _guard = support::browser_test_guard();
     let runtime = tokio::runtime::Runtime::new().expect("runtime");
     let server = runtime.block_on(support::spawn_server());
-    let session_dir = tempdir().expect("session dir");
+    let session_dir = support::test_session_dir();
     let chrome_path = support::chrome_path();
     let binary = support::binary_path();
 
@@ -107,7 +105,7 @@ fn goto_normalizes_bare_loopback_hosts() {
     let _guard = support::browser_test_guard();
     let runtime = tokio::runtime::Runtime::new().expect("runtime");
     let server = runtime.block_on(support::spawn_server());
-    let session_dir = tempdir().expect("session dir");
+    let session_dir = support::test_session_dir();
     let chrome_path = support::chrome_path();
     let binary = support::binary_path();
     let bare_simple_url = server
@@ -143,7 +141,7 @@ fn click_recapture_does_not_wait_for_ai_image_descriptions() {
     let _guard = support::browser_test_guard();
     let runtime = tokio::runtime::Runtime::new().expect("runtime");
     let server = runtime.block_on(support::spawn_server());
-    let session_dir = tempdir().expect("session dir");
+    let session_dir = support::test_session_dir();
     let chrome_path = support::chrome_path();
     let binary = support::binary_path();
 

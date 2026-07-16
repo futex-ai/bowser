@@ -53,7 +53,7 @@ cargo xtask check
 
 - Browser-backed integration coverage lives in the dedicated `browser_flows` test target at [`tests/browser_flows/mod.rs`](./tests/browser_flows/mod.rs), alongside focused suites such as [`tests/document_capture.rs`](./tests/document_capture.rs), [`tests/input_flows.rs`](./tests/input_flows.rs), and [`tests/pointer_click.rs`](./tests/pointer_click.rs)
 - `FileSessionStore` confines metadata filenames to opaque `bsr_` identifiers, validates document IDs against filenames, and migrates legacy metadata consistently on both load and list
-- Failed fresh launches terminate their known-owned Chrome and Xvfb processes and remove unfinished ephemeral profiles; resume, close, and expiry validate persisted Chrome identity, and cleanup removes only UUID-shaped profiles marked as Bowser-owned
+- Fresh launches let Chrome choose its loopback debugging port, require a new profile-local `DevToolsActivePort` handshake before connecting, and terminate their known-owned Chrome and Xvfb processes plus unfinished ephemeral profiles on failure; resume, close, and expiry validate the persisted endpoint and profile identity, and cleanup removes only UUID-shaped profiles marked as Bowser-owned
 - Browser-backed integration tests share a 60-second launch and page timeout and disable GPU compositing so cold Chrome startup on Linux CI and headless iframe screenshots stay stable; timeout-specific tests override lower values locally when they are asserting deadline behavior
 - Test fixtures and local HTTP routes live under [`tests/support/`](./tests/support/mod.rs), with bulky HTML fixtures stored as standalone files in [`tests/fixtures/`](./tests/fixtures/)
 - AI provider tests are mocked and do not require external network access or real credentials
@@ -81,7 +81,7 @@ cargo xtask check
 - After detach/resume, the first ID-based metadata or interaction lookup may rebuild the live element-ID map lazily before probing runtime state, using a lightweight structural recapture that skips the normal stability wait because its only purpose is to rebuild the live DOM-to-ID map
 - Resumed `current_page` and `select_page` attachment validates the selected page target and reacquires a fresh CDP page handle when Chrome returns a stale target session during reattach
 - `to_yaml` only emits `focused: true` for ID-bearing elements that are currently focused
-- `BrowserConfig` now supports explicit `headless` control and `persistent_profile` reuse, with `user_data_dir` remaining the highest-precedence profile override
+- `BrowserConfig` now supports explicit `headless` control and `persistent_profile` reuse, with `user_data_dir` remaining the highest-precedence profile override; every launch validates that viewport width and height are both positive after all config sources are merged
 - `Browser::launch_with_store` lets callers supply a custom `Arc<dyn SessionStore>` so session metadata can live outside the filesystem; `config.session.dir` still provides the default profile-root path for browser data when `user_data_dir` is not set
 - `cleanup_expired_sessions` accepts that trusted session root explicitly, while `SessionMetadata::owns_user_data_dir` keeps explicit and persistent profiles outside Bowser's deletion boundary
 - Fresh sessions create and select a Bowser-owned blank page target instead of reusing Chrome's startup target, and page activation validates the CDP target session before returning a live page
@@ -94,7 +94,7 @@ cargo xtask check
 - Bowser's default stealth path is the Google-safe headed path: full JS DOM capture, backend-node focus, Enter submit for search forms, and Runtime-domain events left enabled; see the protocol ledger for current live smoke evidence
 - `BOWSER_INTERNAL_STEALTH_FEATURES` is a developer-only experiment override used by the Google smoke matrix to toggle one stealth behavior at a time; it is not part of the CLI contract
 - Bowser does not expose proxy transport; use a VPN outside Bowser when browser traffic must leave through a different network route or IP address
-- Browser-native downloads use the active Chrome session so redirects, cookies, and `Content-Disposition` behavior are handled by the browser rather than by a separate HTTP client; Chrome configuration or navigation failures return immediately, while `DownloadTimeout` is reserved for a started download that never completes
+- Browser-native downloads use the active Chrome session so redirects, cookies, and `Content-Disposition` behavior are handled by the browser rather than by a separate HTTP client; Chrome navigation failures return immediately as `DownloadStart`, while `DownloadTimeout` is reserved for a started download that never completes
 - Headed Linux sessions start Xvfb only when neither `DISPLAY` nor `WAYLAND_DISPLAY` is available, apply the configured viewport as Chrome's window size on that synthetic display, and validate the stored Xvfb display before terminating the helper PID during cleanup
 
 ### Key Code

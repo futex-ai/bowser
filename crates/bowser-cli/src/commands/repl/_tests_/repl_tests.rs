@@ -40,6 +40,22 @@ fn parses_js_and_quoted_type_commands() {
 }
 
 #[test]
+fn rejects_extra_arguments_for_fixed_arity_commands() {
+    for command in [
+        "back now",
+        "click 7 now",
+        "type 7 hello world",
+        "yaml 7 now",
+        "scroll down now",
+    ] {
+        assert!(
+            parse_command(command).is_err(),
+            "accepted extra command arguments: {command}"
+        );
+    }
+}
+
+#[test]
 fn parses_prefixed_ids_for_id_commands() {
     assert_eq!(
         parse_command("click link#9").expect("click"),
