@@ -98,6 +98,8 @@ pub enum Error {
         path: PathBuf,
         source: std::io::Error,
     },
+    #[error("[xtask/rust_trait_audit] failed to parse Rust file {path:?}: {source}")]
+    RustTraitAuditParseFile { path: PathBuf, source: syn::Error },
     #[error("[xtask/rust_trait_audit] required guidance doc missing: {path:?}")]
     RustTraitAuditMissingDoc { path: PathBuf },
     #[error("[xtask/rust_trait_audit] {details}")]

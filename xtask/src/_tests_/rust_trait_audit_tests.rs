@@ -43,6 +43,41 @@ fn audit_ignores_crate_root_integration_tests() {
     run_rust_trait_audit(&workspace_root).expect("integration tests are outside the audit path");
 }
 
+#[test]
+fn audit_rejects_generic_multiline_handwritten_test_double() {
+    let workspace_root = test_workspace();
+    write_file(
+        &workspace_root,
+        "crates/example/src/_tests_/lib_tests.rs",
+        "impl<T>\n    ExampleTrait\n    for ExampleStub<T>\n{}\n",
+    );
+
+    let error = run_rust_trait_audit(&workspace_root).expect_err("audit should fail");
+
+    assert!(error.to_string().contains(
+        "crates/example/src/_tests_/lib_tests.rs:1: `impl ExampleTrait for ExampleStub`"
+    ));
+}
+
+#[cfg(unix)]
+#[test]
+fn audit_skips_symlinked_test_trees() {
+    let workspace_root = test_workspace();
+    write_file(
+        &workspace_root,
+        "external-tests/leaked_tests.rs",
+        "impl ExampleTrait for ExampleStub {}\n",
+    );
+    fs::create_dir_all(workspace_root.join("crates/example/src/_tests_")).expect("test root");
+    std::os::unix::fs::symlink(
+        workspace_root.join("external-tests"),
+        workspace_root.join("crates/example/src/_tests_/linked-tests"),
+    )
+    .expect("test symlink");
+
+    run_rust_trait_audit(&workspace_root).expect("symlinked trees are outside the audit path");
+}
+
 fn test_workspace() -> PathBuf {
     let unique = SystemTime::now()
         .duration_since(UNIX_EPOCH)

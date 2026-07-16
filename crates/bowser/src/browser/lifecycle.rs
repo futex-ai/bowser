@@ -68,6 +68,10 @@ pub(super) fn resolve_user_data_dir(config: &BrowserConfig, session_root: &Path)
         .join(uuid::Uuid::new_v4().to_string())
 }
 
+pub(super) fn owns_user_data_dir(config: &BrowserConfig) -> bool {
+    config.user_data_dir.is_none() && !config.persistent_profile
+}
+
 pub(super) fn build_chrome_args(
     config: &BrowserConfig,
     user_data_dir: &Path,

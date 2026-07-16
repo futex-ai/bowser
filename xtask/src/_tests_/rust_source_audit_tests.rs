@@ -83,6 +83,29 @@ fn accepts_integration_test_support_modules() {
     run_rust_source_audit(workspace.path()).unwrap();
 }
 
+#[cfg(unix)]
+#[test]
+fn skips_symlinked_source_directories() {
+    let workspace = temp_workspace();
+    write_workspace_file(
+        workspace.path(),
+        "crates/demo/src/lib.rs",
+        "pub fn demo() {}\n",
+    );
+    write_workspace_file(
+        workspace.path(),
+        "external-source/orphan.rs",
+        "pub fn outside_workspace_package() {}\n",
+    );
+    std::os::unix::fs::symlink(
+        workspace.path().join("external-source"),
+        workspace.path().join("crates/demo/src/linked-source"),
+    )
+    .unwrap();
+
+    run_rust_source_audit(workspace.path()).unwrap();
+}
+
 struct TempWorkspace {
     path: std::path::PathBuf,
 }

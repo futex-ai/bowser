@@ -9,7 +9,7 @@ use crate::error::Error;
 use crate::session::SessionMetadata;
 use crate::session::session_tests::SessionStoreMock;
 
-use super::{Browser, build_chrome_args, resolve_user_data_dir};
+use super::{Browser, build_chrome_args, owns_user_data_dir, resolve_user_data_dir};
 
 #[test]
 fn headed_launch_omits_headless_flags() {
@@ -112,6 +112,19 @@ fn explicit_user_data_dir_beats_persistent_profile() {
         resolve_user_data_dir(&config, &root),
         PathBuf::from("/tmp/custom-profile")
     );
+}
+
+#[test]
+fn only_generated_ephemeral_profiles_are_owned() {
+    assert!(owns_user_data_dir(&BrowserConfig::default()));
+    assert!(!owns_user_data_dir(&BrowserConfig {
+        persistent_profile: true,
+        ..BrowserConfig::default()
+    }));
+    assert!(!owns_user_data_dir(&BrowserConfig {
+        user_data_dir: Some(PathBuf::from("/tmp/custom-profile")),
+        ..BrowserConfig::default()
+    }));
 }
 
 #[tokio::test]

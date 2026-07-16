@@ -2,6 +2,10 @@ use std::collections::BTreeSet;
 use std::fs;
 use std::path::Path;
 
+use syn::spanned::Spanned;
+use syn::visit::{self, Visit};
+use syn::{ItemImpl, Type};
+
 use crate::error::{Error, Result};
 use crate::rust_trait_audit_allowlist::{APPROVED_TEST_DOUBLES, ApprovedTestDouble};
 
@@ -97,12 +101,21 @@ fn visit_rust_files(
             path: root.to_path_buf(),
             source,
         })?;
+        let file_type = entry
+            .file_type()
+            .map_err(|source| Error::RustTraitAuditReadDir {
+                path: entry.path(),
+                source,
+            })?;
+        if file_type.is_symlink() {
+            continue;
+        }
         let path = entry.path();
-        if path.is_dir() {
+        if file_type.is_dir() {
             visit_rust_files(workspace_root, &path, visitor)?;
             continue;
         }
-        if path.extension().and_then(|value| value.to_str()) != Some("rs") {
+        if !file_type.is_file() || path.extension().and_then(|value| value.to_str()) != Some("rs") {
             continue;
         }
         let relative_path = relative_path(workspace_root, &path)?;
@@ -126,25 +139,28 @@ fn audit_test_file(
         path: full_path.to_path_buf(),
         source,
     })?;
+    let syntax = syn::parse_file(&source).map_err(|source| Error::RustTraitAuditParseFile {
+        path: full_path.to_path_buf(),
+        source,
+    })?;
+    let mut visitor = TraitImplVisitor::default();
+    visitor.visit_file(&syntax);
 
-    for (index, line) in source.lines().enumerate() {
-        let Some((trait_name, impl_name)) = parse_impl_signature(line) else {
-            continue;
-        };
-        if IGNORED_TEST_IMPL_TRAITS.contains(&trait_name) {
+    for implementation in visitor.implementations {
+        if IGNORED_TEST_IMPL_TRAITS.contains(&implementation.trait_name.as_str()) {
             continue;
         }
 
         let Some(exception) = APPROVED_TEST_DOUBLES.iter().copied().find(|exception| {
             exception.path == relative_path
-                && exception.trait_name == trait_name
-                && exception.impl_name == impl_name
+                && exception.trait_name == implementation.trait_name
+                && exception.impl_name == implementation.impl_name
         }) else {
             unapproved.push(ObservedTestDouble {
                 path: relative_path.to_owned(),
-                trait_name: trait_name.to_owned(),
-                impl_name: impl_name.to_owned(),
-                line_number: index + 1,
+                trait_name: implementation.trait_name,
+                impl_name: implementation.impl_name,
+                line_number: implementation.line_number,
             });
             continue;
         };
@@ -160,15 +176,46 @@ fn is_test_source(relative_path: &str) -> bool {
         && (relative_path.contains("/_tests_/") || relative_path.ends_with("_tests.rs"))
 }
 
-fn parse_impl_signature(line: &str) -> Option<(&str, &str)> {
-    let line = line.trim_start();
-    let line = line.strip_prefix("impl ")?;
-    if line.starts_with('<') {
-        return None;
+#[derive(Default)]
+struct TraitImplVisitor {
+    implementations: Vec<ParsedTraitImpl>,
+}
+
+impl<'ast> Visit<'ast> for TraitImplVisitor {
+    fn visit_item_impl(&mut self, implementation: &'ast ItemImpl) {
+        if let Some((_, trait_path, _)) = &implementation.trait_ {
+            self.implementations.push(ParsedTraitImpl {
+                trait_name: trait_path
+                    .segments
+                    .iter()
+                    .map(|segment| segment.ident.to_string())
+                    .collect::<Vec<_>>()
+                    .join("::"),
+                impl_name: self_type_name(&implementation.self_ty),
+                line_number: implementation.impl_token.span().start().line,
+            });
+        }
+        visit::visit_item_impl(self, implementation);
     }
-    let (trait_name, remainder) = line.split_once(" for ")?;
-    let impl_name = remainder.trim_end_matches('{').split_whitespace().next()?;
-    Some((trait_name.trim(), impl_name))
+}
+
+struct ParsedTraitImpl {
+    trait_name: String,
+    impl_name: String,
+    line_number: usize,
+}
+
+fn self_type_name(self_type: &Type) -> String {
+    match self_type {
+        Type::Group(group) => self_type_name(&group.elem),
+        Type::Paren(paren) => self_type_name(&paren.elem),
+        Type::Path(path) => path.path.segments.last().map_or_else(
+            || "<unknown>".to_owned(),
+            |segment| segment.ident.to_string(),
+        ),
+        Type::Reference(reference) => self_type_name(&reference.elem),
+        _ => "<unknown>".to_owned(),
+    }
 }
 
 fn relative_path<'a>(workspace_root: &'a Path, path: &'a Path) -> Result<&'a str> {

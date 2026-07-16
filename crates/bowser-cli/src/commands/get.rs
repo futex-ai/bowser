@@ -15,6 +15,15 @@ use crate::{PageFormat, StructuredFormat};
 pub async fn run(config: bowser::BrowserConfig, args: GetArgs) -> Result<()> {
     let browser = Browser::launch(config).await?;
     let session = browser.session_info().await?;
+    let operation_result = execute(&browser, args).await;
+    let detach_result = browser.detach().await;
+    eprintln!("Session: {}", session.id);
+    operation_result?;
+    detach_result?;
+    Ok(())
+}
+
+async fn execute(browser: &dyn BrowserEngine, args: GetArgs) -> Result<()> {
     let page = browser.current_page().await?;
     let url = normalize_navigation_target(&args.url);
     page.navigate(&url).await?;
@@ -37,8 +46,6 @@ pub async fn run(config: bowser::BrowserConfig, args: GetArgs) -> Result<()> {
         PageFormat::Json => render_capture(&capture, StructuredFormat::Json)?,
     };
     write_output(args.output.as_deref(), &output).await?;
-    browser.detach().await?;
-    eprintln!("Session: {}", session.id);
     Ok(())
 }
 

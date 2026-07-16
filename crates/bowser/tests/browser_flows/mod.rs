@@ -7,5 +7,6 @@ mod identity_tests;
 mod iframe_tests;
 mod modal_tests;
 mod network_tests;
+mod session_profile_cleanup_tests;
 mod support;
 mod visibility_tests;

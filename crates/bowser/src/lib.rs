@@ -44,7 +44,8 @@ pub use model::{
 pub use page::PageEngine;
 pub use session::{
     FileSessionStore, SessionMetadata, SessionPageMetadata, SessionStore, cleanup_expired_sessions,
-    default_session_dir, terminate_process, terminate_session_processes,
+    default_session_dir, remove_owned_session_profile, terminate_process,
+    terminate_session_processes, terminate_session_processes_and_wait,
 };
 pub use yaml::{
     from_json, image_description_to_yaml, metadata_to_yaml, to_json, to_yaml, to_yaml_element,

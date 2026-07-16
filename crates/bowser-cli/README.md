@@ -28,6 +28,7 @@ bowser session list
 ## Commands
 
 - `bowser <URL>` and `bowser get <URL>`: single-shot capture with detached-session output
+- once `get` creates a session, later navigation, capture, or output errors still detach and print `Session: <ID>` so the running browser remains discoverable and resumable
 - `bowser get --format html <URL>`: print the full current rendered document as raw HTML text while still storing the structural capture in the detached session
 - `bowser --all <URL>`: disable truncation for that capture; hidden and obscured semantic content is included by default under `content.obscured`
 - `bowser --headed --persistent-profile <URL>`: use a visible Chrome window and Bowser's stable default profile path
@@ -89,7 +90,7 @@ BOWSER_GOOGLE_SMOKE=1 cargo test -p bowser-cli --test interactive_repl google_se
 - Default stealth uses the Google-safe headed path and avoids native headless Chrome without requiring a separate mode flag; see the protocol ledger for the current Google captcha control status.
 - Bowser does not expose proxy transport. Use a VPN outside Bowser when browser traffic must leave through a different network route or IP address.
 - Browser-native downloads preserve Chrome session state such as redirects, cookies, authentication, and `Content-Disposition` handling.
-- Headed Linux sessions start Xvfb only when neither `DISPLAY` nor `WAYLAND_DISPLAY` is available; `session close` and expiry cleanup validate the stored Xvfb display before terminating the helper PID.
+- Headed Linux sessions start Xvfb only when neither `DISPLAY` nor `WAYLAND_DISPLAY` is available; `session close` and expiry cleanup validate the stored Xvfb display before terminating the helper PID and remove only Bowser-owned ephemeral profiles.
 - Interactive runtime flow is split across [`src/commands/interactive/`](./src/commands/interactive), with command dispatch, page actions, capture fallback, and interrupt handling separated into focused modules
 - REPL parsing, suggestions, and prompt helpers live under [`src/commands/repl/`](./src/commands/repl), with command parsing separated from editor/completion behavior
 - Browser-independent CLI coverage lives in [`tests/cli_flows/`](./tests/cli_flows), with shared command helpers in [`tests/cli_flows/support.rs`](./tests/cli_flows/support.rs)

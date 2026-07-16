@@ -55,6 +55,21 @@ fn accepts_external_tests_module_declaration() {
     verify_source_adjacent_test_layout(workspace.path()).unwrap();
 }
 
+#[cfg(unix)]
+#[test]
+fn skips_symlinked_source_trees() {
+    let workspace = temp_workspace();
+    fs::create_dir_all(workspace.path().join("external-source/src/tests")).unwrap();
+    fs::create_dir_all(workspace.path().join("crates/demo")).unwrap();
+    std::os::unix::fs::symlink(
+        workspace.path().join("external-source"),
+        workspace.path().join("crates/demo/linked-source"),
+    )
+    .unwrap();
+
+    verify_source_adjacent_test_layout(workspace.path()).unwrap();
+}
+
 #[test]
 fn accepts_external_test_support_module_with_visibility() {
     let workspace = temp_workspace();

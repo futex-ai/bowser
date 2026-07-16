@@ -9,6 +9,7 @@ use serde::Deserialize;
 use syn::{Attribute, Expr, ExprLit, Item, ItemMod, Lit, Meta};
 
 use crate::error::{Error, Result};
+use crate::filesystem::{display_relative_path, is_regular_file_without_symlink};
 
 const CARGO_METADATA_ARGS: &[&str] = &["metadata", "--no-deps", "--format-version", "1"];
 
@@ -60,7 +61,7 @@ pub(crate) fn run_rust_source_audit(workspace_root: &Path) -> Result<()> {
     let count = orphaned_files.len();
     let details = orphaned_files
         .into_iter()
-        .map(|path| format!("- {}", display_path(workspace_root, &path)))
+        .map(|path| format!("- {}", display_relative_path(workspace_root, &path)))
         .collect::<Vec<_>>()
         .join("\n");
 
@@ -94,7 +95,9 @@ fn find_orphaned_package_files(package: &MetadataPackage) -> Result<Vec<PathBuf>
 
     let mut reachable_files = BTreeSet::new();
     for target in &package.targets {
-        if target.src_path.extension() != Some(OsStr::new("rs")) || !target.src_path.is_file() {
+        if target.src_path.extension() != Some(OsStr::new("rs"))
+            || !is_regular_file_without_symlink(&target.src_path)
+        {
             continue;
         }
 
@@ -183,15 +186,17 @@ fn resolve_external_module_path(
             return Ok(None);
         };
         let resolved = source_dir.join(path_override);
-        return Ok(resolved.is_file().then_some(ResolvedModule {
-            path: resolved,
-            origin: ModuleOrigin::PathAttribute,
-        }));
+        return Ok(
+            is_regular_file_without_symlink(&resolved).then_some(ResolvedModule {
+                path: resolved,
+                origin: ModuleOrigin::PathAttribute,
+            }),
+        );
     }
 
     let module_name = module.ident.to_string();
     let direct_path = module_dir.join(format!("{module_name}.rs"));
-    if direct_path.is_file() {
+    if is_regular_file_without_symlink(&direct_path) {
         return Ok(Some(ResolvedModule {
             path: direct_path,
             origin: ModuleOrigin::Conventional,
@@ -199,10 +204,12 @@ fn resolve_external_module_path(
     }
 
     let nested_path = module_dir.join(module_name).join("mod.rs");
-    Ok(nested_path.is_file().then_some(ResolvedModule {
-        path: nested_path,
-        origin: ModuleOrigin::Conventional,
-    }))
+    Ok(
+        is_regular_file_without_symlink(&nested_path).then_some(ResolvedModule {
+            path: nested_path,
+            origin: ModuleOrigin::Conventional,
+        }),
+    )
 }
 
 fn module_path_override(attributes: &[Attribute]) -> Option<PathBuf> {
@@ -242,10 +249,14 @@ fn collect_package_rust_files(path: &Path, files: &mut BTreeSet<PathBuf>) -> Res
         return Ok(());
     }
 
-    let metadata = fs::metadata(path).map_err(|source| Error::RustSourceAuditReadDirectory {
-        path: path.to_path_buf(),
-        source,
-    })?;
+    let metadata =
+        fs::symlink_metadata(path).map_err(|source| Error::RustSourceAuditReadDirectory {
+            path: path.to_path_buf(),
+            source,
+        })?;
+    if metadata.file_type().is_symlink() {
+        return Ok(());
+    }
     if metadata.is_file() {
         if path.extension() == Some(OsStr::new("rs")) {
             files.insert(path.to_path_buf());
@@ -275,13 +286,6 @@ fn stderr_string(stderr: &[u8]) -> String {
     }
 
     format!(": {stderr}")
-}
-
-fn display_path(workspace_root: &Path, path: &Path) -> String {
-    path.strip_prefix(workspace_root).map_or_else(
-        |_| path.display().to_string(),
-        |relative| relative.display().to_string(),
-    )
 }
 
 struct ResolvedModule {

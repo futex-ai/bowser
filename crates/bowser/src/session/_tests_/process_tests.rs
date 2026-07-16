@@ -1,12 +1,14 @@
 //! Process ownership and cleanup regression tests.
 
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 
 use unimock::{MockFn, Unimock, matching};
 
 use super::cleanup::{
-    chrome_cmdline_matches, terminate_session_processes_with, xvfb_pid_to_terminate_with,
+    chrome_cmdline_matches, terminate_session_processes_and_wait_with,
+    terminate_session_processes_with, xvfb_pid_to_terminate_with,
 };
 use super::metadata::SessionMetadata;
 use super::process::{LaunchedProcessGuard, ProcessControl, ProcessControlMock};
@@ -84,6 +86,47 @@ fn chrome_identity_accepts_quoted_arguments_from_process_listing() {
     ];
 
     assert!(chrome_cmdline_matches(&combined, &session));
+}
+
+#[tokio::test]
+async fn cleanup_forces_chrome_after_graceful_exit_timeout() {
+    let session = metadata(3333);
+    let command_line_calls = Arc::new(AtomicUsize::new(0));
+    let control = Unimock::new((
+        ProcessControlMock::command_line
+            .each_call(matching!(3333))
+            .answers_arc({
+                let command_line_calls = command_line_calls.clone();
+                Arc::new(move |_, _| {
+                    if command_line_calls.fetch_add(1, Ordering::SeqCst) < 3 {
+                        Some(vec![
+                            "/usr/bin/google-chrome".to_string(),
+                            "--remote-debugging-port=9222".to_string(),
+                            "--user-data-dir=/tmp/bowser-profile".to_string(),
+                        ])
+                    } else {
+                        None
+                    }
+                })
+            }),
+        ProcessControlMock::terminate
+            .next_call(matching!(3333))
+            .returns(()),
+        ProcessControlMock::force_terminate
+            .next_call(matching!(3333))
+            .returns(()),
+    ));
+
+    terminate_session_processes_and_wait_with(
+        &control,
+        &session,
+        std::time::Duration::ZERO,
+        std::time::Duration::ZERO,
+    )
+    .await
+    .expect("force-terminated Chrome exits");
+
+    assert_eq!(command_line_calls.load(Ordering::SeqCst), 4);
 }
 
 #[test]

@@ -80,7 +80,12 @@ Callers may persist them directly in a DB and pass a custom `SessionStore`
 implementation to `Browser::launch_with_store(...)`. When Bowser starts Xvfb
 for a headed Linux session, `SessionMetadata` also stores the Xvfb PID and
 display string so close and expiry cleanup can validate the helper process
-before terminating it.
+before terminating it. Fresh ephemeral sessions also set
+`SessionMetadata::owns_user_data_dir`; legacy documents default that field to
+`false`. `cleanup_expired_sessions(store, session_root, ttl)` and
+`remove_owned_session_profile(session_root, metadata)` require the trusted
+session root so arbitrary persisted paths cannot become recursive-deletion
+targets.
 
 ### AI Summarization Trait
 

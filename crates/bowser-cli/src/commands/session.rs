@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use bowser::{
     FileSessionStore, SessionStore, cleanup_expired_sessions, default_session_dir,
-    terminate_session_processes,
+    remove_owned_session_profile, terminate_session_processes_and_wait,
 };
 
 use crate::SessionSubcommand;
@@ -13,16 +13,17 @@ use crate::error::Result;
 
 /// Runs session lifecycle commands.
 pub async fn run(config: &bowser::BrowserConfig, command: SessionSubcommand) -> Result<()> {
-    let store: Arc<dyn SessionStore> = Arc::new(FileSessionStore::new(
-        config
-            .session
-            .dir
-            .clone()
-            .unwrap_or_else(default_session_dir),
-    ));
+    let session_root = config
+        .session
+        .dir
+        .clone()
+        .unwrap_or_else(default_session_dir);
+    let store: Arc<dyn SessionStore> = Arc::new(FileSessionStore::new(session_root.clone()));
     match command {
         SessionSubcommand::List => {
-            for summary in cleanup_expired_sessions(store, config.session.idle_ttl).await? {
+            for summary in
+                cleanup_expired_sessions(store, &session_root, config.session.idle_ttl).await?
+            {
                 println!(
                     "{}\t{}\t{}\t{}",
                     summary.id,
@@ -58,7 +59,8 @@ pub async fn run(config: &bowser::BrowserConfig, command: SessionSubcommand) -> 
         }
         SessionSubcommand::Close { session_id } => {
             let metadata = store.load(&session_id).await?;
-            terminate_session_processes(&metadata);
+            terminate_session_processes_and_wait(&metadata).await?;
+            remove_owned_session_profile(&session_root, &metadata).await?;
             store.remove(&session_id).await?;
         }
     }

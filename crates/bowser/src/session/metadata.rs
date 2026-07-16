@@ -73,6 +73,9 @@ pub struct SessionMetadata {
     pub xvfb_display: Option<String>,
     /// Browser profile directory backing this session.
     pub user_data_dir: PathBuf,
+    /// Whether `user_data_dir` is an ephemeral directory generated and owned by Bowser.
+    #[serde(default)]
+    pub owns_user_data_dir: bool,
     /// Stable Bowser page ID currently selected for commands.
     pub selected_page_id: Option<String>,
     /// Next ordinal used when allocating a stable Bowser page ID.
@@ -95,6 +98,7 @@ impl SessionMetadata {
             xvfb_pid: None,
             xvfb_display: None,
             user_data_dir,
+            owns_user_data_dir: false,
             selected_page_id: None,
             next_page_ordinal: 1,
             pages: Vec::new(),
@@ -115,6 +119,8 @@ pub(super) struct RawSessionMetadata {
     #[serde(default)]
     xvfb_display: Option<String>,
     user_data_dir: PathBuf,
+    #[serde(default)]
+    owns_user_data_dir: bool,
     #[serde(default)]
     selected_page_id: Option<String>,
     #[serde(default)]
@@ -183,6 +189,7 @@ impl From<RawSessionMetadata> for SessionMetadata {
             xvfb_pid: raw.xvfb_pid,
             xvfb_display: raw.xvfb_display,
             user_data_dir: raw.user_data_dir,
+            owns_user_data_dir: raw.owns_user_data_dir,
             selected_page_id,
             next_page_ordinal,
             pages,

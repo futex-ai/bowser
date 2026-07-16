@@ -19,6 +19,7 @@ mod check;
 mod check_plan;
 mod check_plan_bowser;
 mod error;
+mod filesystem;
 mod review;
 mod review_codex;
 mod review_command_display;

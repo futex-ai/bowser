@@ -13,14 +13,19 @@ pub(crate) fn verify_source_adjacent_test_layout(workspace_root: &Path) -> Resul
 }
 
 fn verify_entry(workspace_root: &Path, path: &Path) -> Result<()> {
-    if !path.exists() {
+    let metadata = match fs::symlink_metadata(path) {
+        Ok(metadata) => metadata,
+        Err(source) if source.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+        Err(source) => {
+            return Err(Error::ReadDirectory {
+                path: relative_path(workspace_root, path),
+                source,
+            });
+        }
+    };
+    if metadata.file_type().is_symlink() {
         return Ok(());
     }
-
-    let metadata = fs::metadata(path).map_err(|source| Error::ReadDirectory {
-        path: relative_path(workspace_root, path),
-        source,
-    })?;
 
     if metadata.is_dir() {
         if is_source_adjacent_tests_directory(path) {

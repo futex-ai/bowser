@@ -13,7 +13,7 @@ mod state;
 pub use engine::{Browser, BrowserEngine};
 
 #[cfg(any(test, doctest))]
-use lifecycle::{build_chrome_args, resolve_user_data_dir};
+use lifecycle::{build_chrome_args, owns_user_data_dir, resolve_user_data_dir};
 
 #[cfg(test)]
 #[path = "_tests_/browser_tests.rs"]

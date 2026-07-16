@@ -1,6 +1,8 @@
 //! Session cleanup helpers.
 
+use std::path::Path;
 use std::sync::Arc;
+use std::time::Duration;
 
 use chrono::Utc;
 use url::Url;
@@ -10,7 +12,12 @@ use crate::model::SessionSummary;
 
 use super::metadata::SessionMetadata;
 use super::process::{ProcessControl, SystemProcessControl};
+use super::profile::remove_owned_session_profile;
 use super::store::SessionStore;
+
+const GRACEFUL_EXIT_TIMEOUT: Duration = Duration::from_secs(2);
+const FORCED_EXIT_TIMEOUT: Duration = Duration::from_secs(2);
+const PROCESS_EXIT_POLL: Duration = Duration::from_millis(50);
 
 /// Best-effort process termination for detached Chrome instances.
 pub fn terminate_process(pid: u32) {
@@ -20,6 +27,36 @@ pub fn terminate_process(pid: u32) {
 /// Best-effort process termination for a detached Bowser session.
 pub fn terminate_session_processes(session: &SessionMetadata) {
     terminate_session_processes_with(&SystemProcessControl, session);
+}
+
+/// Terminates a detached session and waits until its Chrome identity disappears.
+pub async fn terminate_session_processes_and_wait(session: &SessionMetadata) -> Result<()> {
+    terminate_session_processes_and_wait_with(
+        &SystemProcessControl,
+        session,
+        GRACEFUL_EXIT_TIMEOUT,
+        FORCED_EXIT_TIMEOUT,
+    )
+    .await
+}
+
+pub(crate) async fn terminate_session_processes_and_wait_with(
+    control: &dyn ProcessControl,
+    session: &SessionMetadata,
+    graceful_timeout: Duration,
+    forced_timeout: Duration,
+) -> Result<()> {
+    terminate_session_processes_with(control, session);
+    if wait_for_chrome_exit(control, session, graceful_timeout).await {
+        return Ok(());
+    }
+    if chrome_process_is_running(control, session) {
+        control.force_terminate(session.pid);
+    }
+    if wait_for_chrome_exit(control, session, forced_timeout).await {
+        return Ok(());
+    }
+    Err(crate::error::Error::SessionProcessStillRunning { pid: session.pid })
 }
 
 pub(crate) fn terminate_session_processes_with(
@@ -65,6 +102,29 @@ pub(crate) fn chrome_cmdline_matches(cmdline: &[String], session: &SessionMetada
     has_argument(cmdline, &port_argument) && has_argument(cmdline, &profile_argument)
 }
 
+async fn wait_for_chrome_exit(
+    control: &dyn ProcessControl,
+    session: &SessionMetadata,
+    timeout: Duration,
+) -> bool {
+    let started = tokio::time::Instant::now();
+    loop {
+        if !chrome_process_is_running(control, session) {
+            return true;
+        }
+        if started.elapsed() >= timeout {
+            return false;
+        }
+        tokio::time::sleep(PROCESS_EXIT_POLL.min(timeout.saturating_sub(started.elapsed()))).await;
+    }
+}
+
+fn chrome_process_is_running(control: &dyn ProcessControl, session: &SessionMetadata) -> bool {
+    control
+        .command_line(session.pid)
+        .is_some_and(|cmdline| chrome_cmdline_matches(&cmdline, session))
+}
+
 fn has_argument(cmdline: &[String], expected: &str) -> bool {
     cmdline.iter().any(|argument| argument == expected)
         || (cmdline.len() == 1 && combined_command_has_argument(&cmdline[0], expected))
@@ -96,6 +156,7 @@ pub(crate) fn xvfb_cmdline_matches(cmdline: &[String], display: &str) -> bool {
 /// Removes expired sessions and returns the remaining session summaries.
 pub async fn cleanup_expired_sessions(
     store: Arc<dyn SessionStore>,
+    session_root: &Path,
     ttl: std::time::Duration,
 ) -> Result<Vec<SessionSummary>> {
     let now = Utc::now();
@@ -106,7 +167,8 @@ pub async fn cleanup_expired_sessions(
             .to_std()
             .unwrap_or_default();
         if idle > ttl {
-            terminate_session_processes(&session);
+            terminate_session_processes_and_wait(&session).await?;
+            remove_owned_session_profile(session_root, &session).await?;
             store.remove(&session.id).await?;
         } else {
             summaries.push(session.summary());

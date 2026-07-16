@@ -75,9 +75,11 @@ If Chrome reports that the target session is missing during that validation, Bow
 
 `FileSessionStore` confines metadata access to validated `bsr_` identifiers and requires each deserialized document ID to match its filename. Both `load` and `list` deserialize through the legacy-aware raw metadata shape before exposing current `SessionMetadata`.
 
-Freshly spawned Chrome and Xvfb processes remain behind an armed ownership guard while Bowser connects to Chrome and persists session metadata. An error at either boundary terminates every newly owned process; the guard is disarmed only after both operations succeed.
+Freshly spawned Chrome and Xvfb processes remain behind an armed ownership guard while Bowser connects to Chrome and persists session metadata. A generated ephemeral profile remains behind a parallel directory guard. An error at either boundary terminates every newly owned process and removes the unfinished profile; both guards are disarmed only after metadata persistence succeeds.
 
-Persisted PIDs are not proof of ownership because operating systems reuse them. Later close and expiry paths inspect the live process command line before sending a termination signal. Chrome must retain the session's exact `--remote-debugging-port` and `--user-data-dir` arguments. Xvfb must retain both the Xvfb program identity and stored display argument. If inspection fails or either identity check differs, cleanup skips that PID.
+Persisted PIDs are not proof of ownership because operating systems reuse them. Later close and expiry paths inspect the live process command line before sending a termination signal. Chrome must retain the session's exact `--remote-debugging-port` and `--user-data-dir` arguments. Xvfb must retain both the Xvfb program identity and stored display argument. If inspection fails or either identity check differs, cleanup skips that PID. A matching Chrome process receives a graceful termination request and a bounded exit wait; if it retains the exact session identity, cleanup force-terminates it and waits again before profile deletion. Metadata remains available for retry if the validated process still does not exit.
+
+Persisted profile ownership is also explicit rather than inferred from an arbitrary path. `SessionMetadata::owns_user_data_dir` defaults to `false` for legacy documents and is set only for fresh, non-persistent, non-explicit profiles. Cleanup requires the configured session root and rejects an owned path unless it is one UUID-named direct child of `<session-root>/profiles`; metadata remains available for a later retry when profile removal fails.
 
 ## Configuration
 

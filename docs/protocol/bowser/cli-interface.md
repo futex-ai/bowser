@@ -47,7 +47,7 @@ Navigation entrypoints accept either fully qualified URLs or bare hostnames. Bow
 
 #### `bowser get <URL>`
 
-Single-shot mode. Navigate to the URL, wait for render, output YAML, JSON, or full rendered HTML, detach from the browser, and print the session ID to `stderr`.
+Single-shot mode. Navigate to the URL, wait for render, output YAML, JSON, or full rendered HTML, detach from the browser, and print the session ID to `stderr`. Once a session exists, Bowser performs the detach and prints that ID even when a later operation fails, then returns the original operation error.
 
 Shortcut form: `bowser <URL>`
 
@@ -400,5 +400,5 @@ bowser session <SUBCOMMAND>
 Subcommands:
   list                       List detached sessions
   info <SESSION_ID>          Show detached-session metadata, including selected page and page summaries
-  close <SESSION_ID>         Close a detached session and remove its metadata
+  close <SESSION_ID>         Close a detached session, remove its metadata, and remove any Bowser-owned ephemeral profile
 ```

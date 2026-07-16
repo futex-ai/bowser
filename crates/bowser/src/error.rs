@@ -48,6 +48,36 @@ pub enum Error {
         actual_session_id: String,
     },
 
+    /// Metadata marked a profile as owned, but its path is outside the generated profile root.
+    #[error("[bowser/session] invalid owned profile path: {path}")]
+    InvalidOwnedProfilePath {
+        /// Rejected profile path.
+        path: std::path::PathBuf,
+    },
+
+    /// Bowser could not remove one of its generated profile paths.
+    #[error("[bowser/session] failed to remove owned profile {path}: {source}")]
+    SessionProfileRemove {
+        /// Profile path Bowser attempted to remove.
+        path: std::path::PathBuf,
+        /// Filesystem failure returned by the operating system.
+        source: std::io::Error,
+    },
+
+    /// The blocking owned-profile cleanup worker could not be joined.
+    #[error("[bowser/session] owned profile cleanup worker failed: {source}")]
+    SessionProfileTask {
+        /// Runtime join failure for the cleanup worker.
+        source: tokio::task::JoinError,
+    },
+
+    /// Chrome retained the exact persisted session identity after forced termination.
+    #[error("[bowser/session] Chrome process {pid} remained active after forced termination")]
+    SessionProcessStillRunning {
+        /// Persisted Chrome process identifier that remained active.
+        pid: u32,
+    },
+
     #[error("[bowser/session] page not found: {page_id}")]
     SessionPageNotFound { page_id: String },
 

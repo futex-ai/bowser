@@ -10,6 +10,8 @@ pub(crate) trait ProcessControl: Send + Sync {
     fn command_line(&self, pid: u32) -> Option<Vec<String>>;
     /// Sends the platform's best-effort termination request.
     fn terminate(&self, pid: u32);
+    /// Forces process termination after a graceful request times out.
+    fn force_terminate(&self, pid: u32);
 }
 
 /// Process control backed by platform commands and process metadata.
@@ -24,6 +26,21 @@ impl ProcessControl for SystemProcessControl {
         #[cfg(unix)]
         let _ = Command::new("kill")
             .arg(pid.to_string())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .status();
+        #[cfg(windows)]
+        let _ = Command::new("taskkill")
+            .args(["/PID", &pid.to_string(), "/F"])
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .status();
+    }
+
+    fn force_terminate(&self, pid: u32) {
+        #[cfg(unix)]
+        let _ = Command::new("kill")
+            .args(["-KILL", &pid.to_string()])
             .stdout(Stdio::null())
             .stderr(Stdio::null())
             .status();

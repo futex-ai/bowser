@@ -53,7 +53,7 @@ cargo xtask check
 
 - Browser-backed integration coverage lives in the dedicated `browser_flows` test target at [`tests/browser_flows/mod.rs`](./tests/browser_flows/mod.rs), alongside focused suites such as [`tests/document_capture.rs`](./tests/document_capture.rs), [`tests/input_flows.rs`](./tests/input_flows.rs), and [`tests/pointer_click.rs`](./tests/pointer_click.rs)
 - `FileSessionStore` confines metadata filenames to opaque `bsr_` identifiers, validates document IDs against filenames, and migrates legacy metadata consistently on both load and list
-- Failed fresh launches terminate their known-owned Chrome and Xvfb processes; later session cleanup validates the live debugging-port/profile or Xvfb-display identity before signaling a persisted PID
+- Failed fresh launches terminate their known-owned Chrome and Xvfb processes and remove unfinished ephemeral profiles; close and expiry cleanup validate persisted process identity, then remove only UUID-shaped profiles marked as Bowser-owned
 - Browser-backed integration tests share a 60-second launch and page timeout and disable GPU compositing so cold Chrome startup on Linux CI and headless iframe screenshots stay stable; timeout-specific tests override lower values locally when they are asserting deadline behavior
 - Test fixtures and local HTTP routes live under [`tests/support/`](./tests/support/mod.rs), with bulky HTML fixtures stored as standalone files in [`tests/fixtures/`](./tests/fixtures/)
 - AI provider tests are mocked and do not require external network access or real credentials
@@ -83,6 +83,7 @@ cargo xtask check
 - `to_yaml` only emits `focused: true` for ID-bearing elements that are currently focused
 - `BrowserConfig` now supports explicit `headless` control and `persistent_profile` reuse, with `user_data_dir` remaining the highest-precedence profile override
 - `Browser::launch_with_store` lets callers supply a custom `Arc<dyn SessionStore>` so session metadata can live outside the filesystem; `config.session.dir` still provides the default profile-root path for browser data when `user_data_dir` is not set
+- `cleanup_expired_sessions` accepts that trusted session root explicitly, while `SessionMetadata::owns_user_data_dir` keeps explicit and persistent profiles outside Bowser's deletion boundary
 - Fresh sessions create and select a Bowser-owned blank page target instead of reusing Chrome's startup target, and page activation validates the CDP target session before returning a live page
 - Detached session metadata now stores per-page records with stable Bowser page IDs such as `pg_1` plus a typed page record (`tab` today); legacy single-page metadata is migrated forward on load
 - The selected page ID is persisted in session metadata so resume, `page select`, `page new`, and `page close` all reattach to the expected page

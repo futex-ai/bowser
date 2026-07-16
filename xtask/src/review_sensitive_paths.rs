@@ -4,13 +4,18 @@ use std::path::{Component, Path};
 
 /// Return whether a tracked path should have its diff body omitted.
 pub(crate) fn is_sensitive_tracked_relative_path(relative_path: &str) -> bool {
-    Path::new(relative_path)
+    let components = Path::new(relative_path)
         .components()
         .filter_map(|component| match component {
             Component::Normal(value) => value.to_str(),
             _ => None,
         })
-        .any(is_explicit_sensitive_component)
+        .collect::<Vec<_>>();
+    components.iter().enumerate().any(|(index, component)| {
+        is_explicit_sensitive_component(component)
+            || (is_broad_sensitive_component(component)
+                && (index + 1 < components.len() || is_sensitive_data_file_name(component)))
+    })
 }
 
 /// Return whether a tracked path should be omitted from AI review context.
@@ -85,6 +90,18 @@ fn is_broad_sensitive_component(component: &str) -> bool {
         || file_name.contains("password")
         || file_name.contains("credential")
         || file_name.contains("token")
+}
+
+fn is_sensitive_data_file_name(file_name: &str) -> bool {
+    let path = Path::new(file_name);
+    let Some(extension) = path.extension().and_then(|value| value.to_str()) else {
+        return true;
+    };
+
+    matches!(
+        extension.to_ascii_lowercase().as_str(),
+        "env" | "json" | "yaml" | "yml" | "toml" | "ini" | "cfg" | "conf" | "properties" | "txt"
+    )
 }
 
 fn is_sensitive_config_file_name(file_name: &str) -> bool {

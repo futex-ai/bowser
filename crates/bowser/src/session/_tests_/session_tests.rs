@@ -138,7 +138,7 @@ async fn cleanup_removes_expired_sessions_and_keeps_recent_ones() {
     store.save(&expired).await.expect("save expired");
     store.save(&fresh).await.expect("save fresh");
 
-    let summaries = cleanup_expired_sessions(store.clone(), Duration::from_secs(60))
+    let summaries = cleanup_expired_sessions(store.clone(), dir.path(), Duration::from_secs(60))
         .await
         .expect("cleanup");
 
@@ -210,6 +210,7 @@ async fn loading_legacy_metadata_migrates_the_single_page_shape() {
     );
     assert!(metadata.pages[0].requires_fresh_capture);
     assert_eq!(metadata.next_page_ordinal, 2);
+    assert!(!metadata.owns_user_data_dir);
 }
 
 #[tokio::test]

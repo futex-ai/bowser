@@ -1,6 +1,6 @@
 //! Browser engine traits, state, and lifecycle entrypoints.
 
-use std::{sync::Arc, time::Duration};
+use std::{path::PathBuf, sync::Arc, time::Duration};
 
 use async_trait::async_trait;
 use tokio::sync::Mutex;
@@ -11,15 +11,15 @@ use crate::{
     model::{SessionInfo, SessionPageSummary},
     page::PageEngine,
     session::{
-        FileSessionStore, SessionStore, cleanup_expired_sessions, default_session_dir,
-        terminate_session_processes,
+        FileSessionStore, OwnedProfileGuard, SessionStore, cleanup_expired_sessions,
+        default_session_dir, remove_owned_session_profile, terminate_session_processes_and_wait,
     },
 };
 
 use super::{
     lifecycle::{
-        allocate_port, connect_browser, launch_chrome, resolve_chrome_path, resolve_user_data_dir,
-        validate_session_age,
+        allocate_port, connect_browser, launch_chrome, owns_user_data_dir, resolve_chrome_path,
+        resolve_user_data_dir, validate_session_age,
     },
     state::BrowserState,
 };
@@ -50,6 +50,7 @@ pub struct Browser {
     pub(super) session_info: SessionInfo,
     pub(super) config: BrowserConfig,
     pub(super) store: Arc<dyn SessionStore>,
+    pub(super) session_root: PathBuf,
     pub(super) inner: Mutex<BrowserState>,
 }
 
@@ -75,7 +76,8 @@ impl Browser {
             .dir
             .clone()
             .unwrap_or_else(default_session_dir);
-        let _ = cleanup_expired_sessions(store.clone(), config.session.idle_ttl).await;
+        let _ =
+            cleanup_expired_sessions(store.clone(), &session_root, config.session.idle_ttl).await;
 
         let (session_info, browser, handler_task, metadata) =
             if let Some(session_id) = config.session.id.clone() {
@@ -95,6 +97,12 @@ impl Browser {
             } else {
                 let chrome_path = resolve_chrome_path(config.chrome_path.as_deref())?;
                 let user_data_dir = resolve_user_data_dir(&config, &session_root);
+                let owns_user_data_dir = owns_user_data_dir(&config);
+                let mut profile_guard = OwnedProfileGuard::system(
+                    &session_root,
+                    user_data_dir.clone(),
+                    owns_user_data_dir,
+                )?;
                 std::fs::create_dir_all(&user_data_dir)
                     .map_err(|err| crate::error::Error::io("create user data directory", err))?;
                 let port = allocate_port()?;
@@ -106,6 +114,7 @@ impl Browser {
                     pid,
                     user_data_dir,
                 );
+                metadata.owns_user_data_dir = owns_user_data_dir;
                 if let Some(xvfb) = xvfb {
                     metadata.xvfb_pid = Some(xvfb.pid);
                     metadata.xvfb_display = Some(xvfb.display);
@@ -117,6 +126,7 @@ impl Browser {
                     return Err(error);
                 }
                 process_guard.disarm();
+                profile_guard.disarm();
                 (
                     SessionInfo {
                         id: session_id,
@@ -133,6 +143,7 @@ impl Browser {
             session_info,
             config,
             store,
+            session_root,
             inner: Mutex::new(BrowserState {
                 browser,
                 handler_task,
@@ -190,7 +201,8 @@ impl BrowserEngine for Browser {
         let mut state = self.inner.lock().await;
         let _ = tokio::time::timeout(Duration::from_secs(5), state.browser.close()).await;
         state.handler_task.abort();
-        terminate_session_processes(&state.metadata);
+        terminate_session_processes_and_wait(&state.metadata).await?;
+        remove_owned_session_profile(&self.session_root, &state.metadata).await?;
         self.store.remove(&state.metadata.id).await?;
         Ok(())
     }
