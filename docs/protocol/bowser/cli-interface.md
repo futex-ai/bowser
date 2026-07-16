@@ -41,6 +41,8 @@ Options:
 
 If the first non-flag argument is a URL instead of a named command, Bowser treats it as `get <URL>`.
 
+The platform-default config file is optional when `--config` is omitted. When `--config <PATH>` is supplied, that exact file must exist and any missing-file, read, parse, or validation failure is reported with the selected path.
+
 Navigation entrypoints accept either fully qualified URLs or bare hostnames. Bowser should assume `https://` for public hostnames such as `slack.com`, and `http://` for loopback hosts such as `localhost:3000` or `127.0.0.1:3000`.
 
 ### Commands
@@ -202,7 +204,7 @@ bowser scroll --session bsr_01HZX... --direction down
 
 #### `bowser describe <ELEMENT_ID>`
 
-Generate or print a cached explicit AI description for an image from the most recent capture in a resumable session. The target element ID must refer to an image. The result includes the image `alt`, `src`, derived `filename` when available, and the `description` text.
+Generate or print a cached explicit AI description for an image from the most recent capture in a resumable session. The target element ID must refer to an image. The result includes the image `alt`, `src`, derived `filename` when available, and the `description` text. An uncached provider request must finish within the global `--timeout` deadline.
 
 ```
 bowser describe [OPTIONS] <ELEMENT_ID>

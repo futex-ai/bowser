@@ -90,9 +90,16 @@ targets.
 ### AI Summarization Trait
 
 ```rust
+use std::time::Duration;
+
 #[async_trait]
 pub trait ImageSummarizer: Send + Sync {
-    async fn describe(&self, image_bytes: &[u8], format: ImageFormat) -> Result<String>;
+    async fn describe(
+        &self,
+        image_bytes: &[u8],
+        format: ImageFormat,
+        timeout: Duration,
+    ) -> Result<String>;
 }
 
 pub enum ImageFormat {
@@ -105,13 +112,15 @@ pub enum ImageFormat {
 Implementations are provided for Anthropic, OpenAI, and Ollama.
 Each implementation validates the provider HTTP status before parsing its JSON
 payload, so authentication, throttling, and server failures remain visible in
-the returned `AiSummarization` error.
+the returned `AiSummarization` error. Implementations must apply the supplied
+deadline to the complete request and return `AiSummarizationTimeout` when it
+expires; `PageEngine::describe` also enforces the same outer deadline.
 
 If the selected provider requires an API key and the configured key environment variable is unset or empty, Bowser keeps structural capture working and simply leaves explicit image description unavailable unless a cached description already exists.
 
 Compact page YAML still labels images from `alt` plus the source filename when available. When AI is currently available, image elements add `describable: true` so callers know `describe` can be used.
 
-`PageEngine::describe` is best-effort. If clipped screenshot capture fails, provider calls fail, or image descriptions cannot be produced for any other reason, Bowser still returns the structural page capture unchanged. Regular captures never call the provider automatically. `PageEngine::describe` may return a cached description immediately or perform the screenshot-and-provider call on demand when no cached description exists.
+`PageEngine::describe` is best-effort. If clipped screenshot capture fails, provider calls fail or time out, or image descriptions cannot be produced for any other reason, Bowser still returns the structural page capture unchanged. Regular captures never call the provider automatically. `PageEngine::describe` may return a cached description immediately or perform the screenshot-and-provider call on demand when no cached description exists.
 
 ### Library Usage Example
 

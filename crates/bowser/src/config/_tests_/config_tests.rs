@@ -17,9 +17,24 @@ fn rejects_zero_viewport_dimensions() {
 }
 
 #[test]
+fn rejects_missing_explicit_config_file() {
+    let config_dir = tempdir().expect("config dir");
+    let config_path = config_dir.path().join("missing.yaml");
+
+    let error = load_config(Some(&config_path), ConfigOverrides::default())
+        .expect_err("an explicitly requested config file must exist");
+
+    assert!(matches!(
+        error,
+        crate::error::Error::ConfigFileNotFound { path } if path == config_path
+    ));
+}
+
+#[test]
 fn rejects_zero_viewport_from_final_config_overrides() {
     let config_dir = tempdir().expect("config dir");
     let config_path = config_dir.path().join("missing.yaml");
+    std::fs::write(&config_path, "{}\n").expect("empty config");
     let error = load_config(
         Some(&config_path),
         ConfigOverrides {

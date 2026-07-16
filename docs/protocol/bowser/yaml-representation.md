@@ -190,7 +190,7 @@ The explicit `describe` command:
 
 1. Resolves the image by captured element ID.
 2. Returns any cached `description` if one already exists for that image in the current session state.
-3. Otherwise screenshots the image element, sends it to the configured AI model endpoint, and caches the returned description back into session state. Same-document images use a page-space CDP clip; target-backed iframe images render the actual `<img>` to an element-local PNG inside the iframe target.
+3. Otherwise screenshots the image element, sends it to the configured AI model endpoint within `BrowserConfig.timeout`, and caches the returned description back into session state. Same-document images use a page-space CDP clip; target-backed iframe images render the actual `<img>` to an element-local PNG inside the iframe target. A provider that does not finish before the deadline returns `AiSummarizationTimeout` and does not populate the cache.
 4. Returns a structured payload containing `element_id`, `alt`, `src`, `filename`, and `description`.
 
 If AI summarization is disabled or unavailable and no cached description exists, `describe` returns an error instead of silently fabricating a description from `alt`.

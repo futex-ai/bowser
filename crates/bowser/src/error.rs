@@ -136,6 +136,20 @@ pub enum Error {
     #[error("[bowser/ai] image summarization failed: {reason}")]
     AiSummarization { reason: String },
 
+    /// The configured AI provider did not finish within the request deadline.
+    #[error("[bowser/ai] image summarization timed out after {seconds}s")]
+    AiSummarizationTimeout {
+        /// Configured request deadline in whole seconds.
+        seconds: u64,
+    },
+
+    /// An explicitly requested configuration file does not exist.
+    #[error("[bowser/config] config file not found: {path}")]
+    ConfigFileNotFound {
+        /// Missing configuration file path.
+        path: std::path::PathBuf,
+    },
+
     #[error("[bowser/config] invalid configuration: {reason}")]
     Config { reason: String },
 

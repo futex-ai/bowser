@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use axum::http::{HeaderMap, StatusCode};
 use axum::routing::post;
 use axum::{Json, Router};
@@ -5,6 +7,9 @@ use serde_json::{Value, json};
 
 use super::{ImageFormat, build_image_summarizer};
 use crate::config::{AiConfig, AiProvider};
+use crate::error::Error;
+
+const PROVIDER_REQUEST_TIMEOUT: Duration = Duration::from_secs(5);
 
 #[test]
 fn build_image_summarizer_skips_missing_credentials() {
@@ -29,7 +34,7 @@ async fn provider_clients_use_mock_endpoints() {
     let anthropic_client = build_image_summarizer(&anthropic).expect("anthropic client");
     assert_eq!(
         anthropic_client
-            .describe(b"png", ImageFormat::Png)
+            .describe(b"png", ImageFormat::Png, PROVIDER_REQUEST_TIMEOUT)
             .await
             .expect("anthropic response"),
         "anthropic mock"
@@ -40,7 +45,7 @@ async fn provider_clients_use_mock_endpoints() {
     let openai_client = build_image_summarizer(&openai).expect("openai client");
     assert_eq!(
         openai_client
-            .describe(b"png", ImageFormat::Png)
+            .describe(b"png", ImageFormat::Png, PROVIDER_REQUEST_TIMEOUT)
             .await
             .expect("openai response"),
         "openai mock"
@@ -51,7 +56,7 @@ async fn provider_clients_use_mock_endpoints() {
     let ollama_client = build_image_summarizer(&ollama).expect("ollama client");
     assert_eq!(
         ollama_client
-            .describe(b"png", ImageFormat::Png)
+            .describe(b"png", ImageFormat::Png, PROVIDER_REQUEST_TIMEOUT)
             .await
             .expect("ollama response"),
         "ollama mock"
@@ -72,7 +77,7 @@ async fn provider_clients_report_http_error_statuses() {
         let client = build_image_summarizer(&config).expect("provider client");
 
         let error = client
-            .describe(b"png", ImageFormat::Png)
+            .describe(b"png", ImageFormat::Png, PROVIDER_REQUEST_TIMEOUT)
             .await
             .expect_err("provider HTTP error");
 
@@ -80,6 +85,28 @@ async fn provider_clients_report_http_error_statuses() {
             error.to_string().contains("429"),
             "provider error omitted HTTP status: {error}"
         );
+    }
+}
+
+#[tokio::test]
+async fn provider_clients_honor_request_timeout() {
+    let server = mock_server().await;
+
+    for provider in [
+        AiProvider::Anthropic,
+        AiProvider::OpenAi,
+        AiProvider::Ollama,
+    ] {
+        let mut config = sample_config(provider);
+        config.endpoint = Some(server.url("/stalled"));
+        let client = build_image_summarizer(&config).expect("provider client");
+
+        let error = client
+            .describe(b"png", ImageFormat::Png, Duration::from_millis(50))
+            .await
+            .expect_err("provider request timeout");
+
+        assert!(matches!(error, Error::AiSummarizationTimeout { .. }));
     }
 }
 
@@ -115,7 +142,8 @@ async fn mock_server() -> MockServer {
         .route("/anthropic", post(anthropic_handler))
         .route("/openai", post(openai_handler))
         .route("/ollama", post(ollama_handler))
-        .route("/provider-error", post(provider_error_handler));
+        .route("/provider-error", post(provider_error_handler))
+        .route("/stalled", post(stalled_handler));
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
         .await
         .expect("bind mock server");
@@ -158,4 +186,9 @@ async fn provider_error_handler() -> (StatusCode, Json<Value>) {
         StatusCode::TOO_MANY_REQUESTS,
         Json(json!({ "error": { "message": "rate limited" } })),
     )
+}
+
+async fn stalled_handler() -> Json<Value> {
+    tokio::time::sleep(Duration::from_secs(5)).await;
+    Json(json!({}))
 }

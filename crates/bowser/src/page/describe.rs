@@ -25,7 +25,19 @@ impl LivePage {
             .ok_or(Error::DescribeUnavailable { element_id })?;
         self.ensure_live_ids(element_id).await?;
         let bytes = self.screenshot_element_from_live_ids(element_id).await?;
-        let description = summarizer.describe(&bytes, ImageFormat::Png).await?;
+        let description = tokio::time::timeout(
+            self.config.timeout,
+            summarizer.describe(&bytes, ImageFormat::Png, self.config.timeout),
+        )
+        .await;
+        let description = match description {
+            Ok(description) => description?,
+            Err(_) => {
+                return Err(Error::AiSummarizationTimeout {
+                    seconds: self.config.timeout.as_secs(),
+                });
+            }
+        };
         self.cache_image_description(element_id, &description)
             .await?;
         Ok(ImageDescription::new(

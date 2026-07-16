@@ -62,13 +62,22 @@ pub fn load_config(
     config_path: Option<&Path>,
     overrides: ConfigOverrides,
 ) -> Result<BrowserConfig> {
+    let explicit_path = config_path.is_some();
     let path = config_path
         .map(Path::to_path_buf)
         .unwrap_or_else(default_config_path);
     let mut config = BrowserConfig::default();
-    if path.exists() {
-        let contents =
-            std::fs::read_to_string(&path).map_err(|err| Error::io("read config", err))?;
+    let contents = match std::fs::read_to_string(&path) {
+        Ok(contents) => Some(contents),
+        Err(source) if !explicit_path && source.kind() == std::io::ErrorKind::NotFound => None,
+        Err(source) if source.kind() == std::io::ErrorKind::NotFound => {
+            return Err(Error::ConfigFileNotFound { path });
+        }
+        Err(source) => {
+            return Err(Error::io(format!("read config {}", path.display()), source));
+        }
+    };
+    if let Some(contents) = contents {
         let file_config: FileConfig = serde_yaml::from_str(&contents).map_err(|err| {
             Error::config(format!(
                 "failed to parse config file {}: {err}",

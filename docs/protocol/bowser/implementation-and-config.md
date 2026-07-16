@@ -87,7 +87,7 @@ Persisted profile ownership is also explicit rather than inferred from an arbitr
 
 ### Config File
 
-Located at `~/.config/bowser/config.yaml` (overridable via `--config`).
+Located at `~/.config/bowser/config.yaml` (overridable via `--config`). The platform-default file is optional when no path is selected explicitly. An explicit `--config` path must exist; Bowser returns a path-bearing `ConfigFileNotFound` error instead of silently continuing with environment variables and defaults.
 
 ```yaml
 sessions:
@@ -217,4 +217,4 @@ started successfully but did not produce a completed file before the deadline.
 
 CLI flags > environment variables > config file > defaults.
 
-For Anthropic and OpenAI providers, `api_key_env` names the environment variable that contains the actual provider API key. If that environment variable is missing or empty, compact YAML omits `describable: true`, regular captures stay structural, and explicit `describe` requests fail unless a cached description already exists. For Ollama, enabled local configuration is enough for `describable: true`. All provider clients reject non-success HTTP responses before parsing the response body and retain the HTTP status in the returned `AiSummarization` error.
+For Anthropic and OpenAI providers, `api_key_env` names the environment variable that contains the actual provider API key. If that environment variable is missing or empty, compact YAML omits `describable: true`, regular captures stay structural, and explicit `describe` requests fail unless a cached description already exists. For Ollama, enabled local configuration is enough for `describable: true`. All provider clients apply `BrowserConfig.timeout` to the complete request, reject non-success HTTP responses before parsing the response body, retain the HTTP status in `AiSummarization`, and return `AiSummarizationTimeout` when the deadline expires.

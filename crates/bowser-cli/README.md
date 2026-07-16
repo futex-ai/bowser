@@ -44,7 +44,7 @@ bowser session list
 - navigation commands accept bare hostnames such as `slack.com` and default them to `https://`; loopback hosts such as `localhost:3000` default to `http://`
 - `bowser expand --session <ID> <ELEMENT_ID>`: print a full subtree from the last capture
 - `bowser meta --session <ID> <ELEMENT_ID>`: fetch metadata for any ID-bearing element, including current focus, live visibility details, page-space bounds, and `describable: true` for images when AI is available
-- `bowser describe --session <ID> <ELEMENT_ID>`: generate or print a cached AI description for an image by ID
+- `bowser describe --session <ID> <ELEMENT_ID>`: generate or print a cached AI description for an image by ID; uncached provider requests use the global `--timeout` deadline
 - `bowser page list|select|new|close --session <ID>`: inspect and manage multiple pages inside a detached session using stable page IDs such as `pg_1`
 - `bowser session list|info|close`: inspect and manage detached sessions
 - `bowser pointer-log --output browser-log`: serve a loopback-only local pointer telemetry page with one randomized target at a time and append captured events to a local JSONL file, defaulting to the gitignored `browser-log` in manual mode, without storing session IDs or user-agent strings; each newly placed target also writes a row with its viewport rect
@@ -87,7 +87,7 @@ BOWSER_GOOGLE_SMOKE=1 cargo test -p bowser-cli --test interactive_repl google_se
 
 - Top-level CLI parsing and dispatch now live in [`src/args.rs`](./src/args.rs), [`src/cli.rs`](./src/cli.rs), and [`src/dispatch.rs`](./src/dispatch.rs), while [`src/main.rs`](./src/main.rs) stays as the thin binary entrypoint
 - CLI and merged library configuration reject zero-width or zero-height viewports before Chrome or Xvfb starts
-- Configuration load failures report both the selected path and the underlying parse, I/O, or validation cause
+- Configuration load failures report both the selected path and the underlying missing-file, parse, I/O, or validation cause; the default path is optional, but an explicit `--config` path must exist
 - The local pointer telemetry command lives in [`src/commands/pointer_log/`](./src/commands/pointer_log), shows one randomized target element at a time, appends one JSON object per event to a configurable JSONL file that defaults to the repo-root gitignored `browser-log` in manual mode, omits session IDs and user-agent strings, and records a `target_spawn` row with target bounds each time a new target is placed
 - Pointer-log demo mode starts the same loopback server, launches headed Chrome through the `bowser` library, drives the page with `PageEngine::click`, and renders an in-page cursor trail plus click pulse so CDP pointer movement is visible.
 - Stealth is conservative: Bowser cleans obvious automation leaks and keeps native Chrome fingerprint values unless a complete browser identity profile is designed and tested as one system.

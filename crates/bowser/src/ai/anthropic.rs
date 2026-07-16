@@ -1,12 +1,18 @@
 //! Anthropic-backed image summarization.
 
+use std::time::Duration;
+
 use async_trait::async_trait;
 use base64::{Engine, engine::general_purpose::STANDARD};
 use reqwest::header::{CONTENT_TYPE, HeaderMap, HeaderValue};
 
 use crate::error::{Error, Result};
 
-use super::{ImageFormat, ImageSummarizer, factory::header_value, types::require_success};
+use super::{
+    ImageFormat, ImageSummarizer,
+    factory::header_value,
+    types::{request_error, require_success, response_parse_error},
+};
 
 /// Anthropic summarizer.
 #[derive(Debug)]
@@ -30,7 +36,12 @@ impl AnthropicImageSummarizer {
 
 #[async_trait]
 impl ImageSummarizer for AnthropicImageSummarizer {
-    async fn describe(&self, image_bytes: &[u8], format: ImageFormat) -> Result<String> {
+    async fn describe(
+        &self,
+        image_bytes: &[u8],
+        format: ImageFormat,
+        timeout: Duration,
+    ) -> Result<String> {
         let body = serde_json::json!({
             "model": self.model,
             "max_tokens": 128,
@@ -55,19 +66,19 @@ impl ImageSummarizer for AnthropicImageSummarizer {
             .post(&self.endpoint)
             .headers(headers)
             .json(&body)
+            .timeout(timeout)
             .send()
-            .await
-            .map_err(|err| Error::AiSummarization {
-                reason: format!("anthropic request failed: {err}"),
-            })?;
+            .await;
+        let response = match response {
+            Ok(response) => response,
+            Err(error) => return Err(request_error(error, "anthropic", timeout)),
+        };
         let response = require_success(response, "anthropic")?;
-        let response: serde_json::Value =
-            response
-                .json()
-                .await
-                .map_err(|err| Error::AiSummarization {
-                    reason: format!("anthropic response parse failed: {err}"),
-                })?;
+        let response = response.json().await;
+        let response: serde_json::Value = match response {
+            Ok(response) => response,
+            Err(error) => return Err(response_parse_error(error, "anthropic", timeout)),
+        };
         response["content"][0]["text"]
             .as_str()
             .map(ToString::to_string)

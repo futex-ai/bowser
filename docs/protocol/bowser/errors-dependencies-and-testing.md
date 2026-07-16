@@ -4,8 +4,9 @@ Bowser's public error contract is the typed `Error` enum below. Because
 `bowser` is a reusable public library crate, external consumers are part of the
 caller contract, so browser, session, page, and interaction failures remain
 stable variants that consumers can match. Backend failures are translated at
-their boundary into the closest Bowser-owned variant, such as `Cdp`, `Io`, or
-`AiSummarization`, with enough context to diagnose the failed operation.
+their boundary into the closest Bowser-owned variant, such as `Cdp`, `Io`,
+`AiSummarization`, or `AiSummarizationTimeout`, with enough context to diagnose
+the failed operation.
 
 ### Library Errors
 
@@ -110,6 +111,12 @@ pub enum Error {
     #[error("[bowser/ai] image summarization failed: {reason}")]
     AiSummarization { reason: String },
 
+    #[error("[bowser/ai] image summarization timed out after {seconds}s")]
+    AiSummarizationTimeout { seconds: u64 },
+
+    #[error("[bowser/config] config file not found: {path}")]
+    ConfigFileNotFound { path: std::path::PathBuf },
+
     #[error("[bowser/config] invalid configuration: {reason}")]
     Config { reason: String },
 
@@ -155,8 +162,11 @@ pub enum CliError {
     #[error("[bowser-cli/io] failed to write output: {path}")]
     OutputWrite { path: String },
 
-    #[error("[bowser-cli/config] failed to load config: {path}")]
-    ConfigLoad { path: String },
+    #[error("[bowser-cli/config] failed to load config {path}: {source}")]
+    ConfigLoad {
+        path: String,
+        source: bowser::Error,
+    },
 
     #[error("[bowser-cli/repl] invalid command: {input}")]
     InvalidCommand { input: String },

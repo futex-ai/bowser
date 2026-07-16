@@ -66,7 +66,7 @@ cargo xtask check
 - ARIA checkable controls such as `role="checkbox"`, `role="radio"`, and `role="switch"` are captured as actionable inputs, including labels resolved from `aria-label` or `aria-labelledby`
 - Compact YAML image labels prefer `alt` plus the source filename; when AI is currently available, image nodes add `describable: true` so callers can opt into `PageEngine::describe`
 - Regular captures and post-action REPL re-captures stay structural; Bowser only calls the AI provider during explicit `PageEngine::describe` requests
-- `PageEngine::describe` is best-effort: missing credentials, screenshot failures, or provider failures do not affect structural page capture, provider HTTP failures retain their status code, and a later describe call may still return a cached explicit description on demand
+- `PageEngine::describe` is best-effort: missing credentials, screenshot failures, provider failures, or provider timeouts do not affect structural page capture; HTTP failures retain their status code, uncached provider calls use `BrowserConfig.timeout`, and a later describe call may still return a cached explicit description on demand
 - Hidden or obscured semantic content is included by default under `content.obscured`; `BrowserConfig.output.include_hidden` is retained as a legacy no-op, and the CLI `--all` shorthand disables truncation
 - `PageEngine::type_text`, `PageEngine::press_keys`, and `PageEngine::clear` now use real CDP keyboard input with fast randomized pauses instead of synthetic DOM keyboard events
 - `PageEngine::submit` prefers Enter on text-like controls or a real click on submit buttons before falling back to DOM form submission helpers
@@ -89,6 +89,7 @@ cargo xtask check
 - The selected page ID is persisted in session metadata so resume, `page select`, `page new`, and `page close` all reattach to the expected page
 - Live page inventory bounds URL/title probes and falls back to stored metadata, so stale Chromium targets after page close do not stall page selection
 - Config loading now lives under `src/config/`, session persistence under `src/session/`, runtime page orchestration under `src/page/`, page model types under `src/model/`, and YAML/JSON rendering under `src/yaml/`, so those support areas can evolve without growing new monolith files
+- The platform-default config file remains optional, while a path explicitly passed to `load_config` must exist and returns `ConfigFileNotFound` when it does not
 - Bowser's stealth behavior is intentionally conservative: native Chrome values are preferred, obvious automation leaks are cleaned, and any future non-native fingerprint profile must be designed and tested as one complete browser identity
 - Bowser's default stealth launch flags match the gstack-style control baseline: `--hide-crash-restore-bubble` plus `--disable-blink-features=AutomationControlled`, without synthetic locale or device-scale launch flags
 - Bowser's default stealth path is the Google-safe headed path: full JS DOM capture, backend-node focus, Enter submit for search forms, and Runtime-domain events left enabled; see the protocol ledger for current live smoke evidence
