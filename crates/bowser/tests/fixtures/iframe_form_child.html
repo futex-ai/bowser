@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Iframe Form Child</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        margin: 0;
+        min-height: 900px;
+        padding: 16px;
+      }
+      label,
+      button,
+      select,
+      input {
+        display: block;
+        margin-bottom: 12px;
+      }
+      #color-button {
+        background: #00cc00;
+        border: 0;
+        color: #00cc00;
+        height: 40px;
+        width: 120px;
+      }
+      #deep-target {
+        margin-top: 620px;
+      }
+    </style>
+  </head>
+  <body>
+    <form id="child-form">
+      <label>
+        Message
+        <input name="message" value="old">
+      </label>
+      <label>
+        Choice
+        <select name="choice">
+          <option>One</option>
+          <option>Two</option>
+        </select>
+      </label>
+      <button type="submit">Send</button>
+    </form>
+    <button id="color-button" type="button">Color block</button>
+    <button id="deep-target" type="button">Deep target</button>
+    <p id="state">Waiting</p>
+    <script>
+      const form = document.getElementById("child-form");
+      const state = document.getElementById("state");
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const data = new FormData(form);
+        state.textContent = `submitted:${data.get("message")}:${data.get("choice")}`;
+      });
+    </script>
+  </body>
+</html>

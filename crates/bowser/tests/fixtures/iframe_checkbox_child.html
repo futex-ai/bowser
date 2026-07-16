@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Iframe Checkbox Child</title>
+    <style>
+      #recaptcha-anchor {
+        align-items: center;
+        border: 2px solid #5f6368;
+        display: inline-flex;
+        height: 32px;
+        justify-content: center;
+        margin: 16px;
+        width: 32px;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="recaptcha-anchor"
+      role="checkbox"
+      aria-checked="false"
+      aria-labelledby="recaptcha-anchor-label"
+      tabindex="0"
+    ></div>
+    <span id="recaptcha-anchor-label">I'm not a robot</span>
+    <p id="state">Unchecked</p>
+    <script>
+      const anchor = document.getElementById("recaptcha-anchor");
+      const state = document.getElementById("state");
+      anchor.addEventListener("click", (event) => {
+        if (!event.isTrusted) return;
+        anchor.setAttribute("aria-checked", "true");
+        state.textContent = "Checked by trusted click";
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Chatty Fixture</title>
+    <script>
+      window.addEventListener('load', () => {
+        const status = document.getElementById('status');
+        status.textContent = 'Chatty ready';
+        for (let index = 0; index < 3; index += 1) {
+          fetch(`/slow-data/${index}`).catch(() => null);
+        }
+      });
+    </script>
+  </head>
+  <body>
+    <main>
+      <p id="status">Loading chatty fixture...</p>
+    </main>
+  </body>
+</html>

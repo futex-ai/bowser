@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Fixture Simple</title>
+  </head>
+  <body>
+    <nav>
+      <a href="/next">next</a>
+      <a href="/help">help</a>
+    </nav>
+    <main>
+      <article>
+        <h1>Fixture Simple</h1>
+        <p>Hello world</p>
+        <form action="/search">
+          <input type="text" name="q" placeholder="Search">
+          <input type="hidden" name="csrf_token" value="secret">
+          <button type="submit">Search</button>
+        </form>
+        <div style="display: none">
+          <a href="/secret">Secret link</a>
+          <button type="button">Hidden action</button>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Field</th>
+              <th>Value</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Coupon</td>
+              <td><input type="text" name="coupon" placeholder="Enter code"></td>
+            </tr>
+          </tbody>
+        </table>
+      </article>
+    </main>
+  </body>
+</html>

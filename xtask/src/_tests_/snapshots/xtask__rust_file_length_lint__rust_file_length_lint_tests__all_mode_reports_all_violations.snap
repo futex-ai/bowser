@@ -1,0 +1,7 @@
+---
+source: xtask/src/_tests_/rust_file_length_lint_tests.rs
+expression: error.to_string()
+---
+[xtask/rust_file_length_lint] found 2 violation(s):
+[xtask/rust_file_length_lint] Rust file exceeds max lines: crates/demo/src/lib.rs has 301 lines; allowed max is 300
+[xtask/rust_file_length_lint] Rust file exceeds max lines: xtask/src/main.rs has 302 lines; allowed max is 300
