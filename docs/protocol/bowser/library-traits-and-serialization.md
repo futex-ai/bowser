@@ -103,6 +103,9 @@ pub enum ImageFormat {
 ```
 
 Implementations are provided for Anthropic, OpenAI, and Ollama.
+Each implementation validates the provider HTTP status before parsing its JSON
+payload, so authentication, throttling, and server failures remain visible in
+the returned `AiSummarization` error.
 
 If the selected provider requires an API key and the configured key environment variable is unset or empty, Bowser keeps structural capture working and simply leaves explicit image description unavailable unless a cached description already exists.
 

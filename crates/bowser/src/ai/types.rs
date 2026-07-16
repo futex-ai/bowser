@@ -4,6 +4,19 @@ use async_trait::async_trait;
 
 use crate::error::{Error, Result};
 
+/// Rejects a provider response when its HTTP status is not successful.
+pub(super) fn require_success(
+    response: reqwest::Response,
+    provider: &str,
+) -> Result<reqwest::Response> {
+    match response.error_for_status() {
+        Ok(response) => Ok(response),
+        Err(error) => Err(Error::AiSummarization {
+            reason: format!("{provider} request failed: {error}"),
+        }),
+    }
+}
+
 /// Image format.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ImageFormat {

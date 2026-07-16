@@ -109,7 +109,9 @@ cargo xtask rust-file-length-lint --all
 
 Pull requests and main-branch pushes run the same full check in GitHub Actions.
 A `v<workspace-version>` tag runs the release workflow and publishes
-checksummed CLI archives.
+checksummed CLI archives. Release verification records the exact checked-out
+commit, and every platform build uses that verified commit rather than
+resolving the tag again.
 
 ## Key Code
 

@@ -6,7 +6,7 @@ use reqwest::header::{CONTENT_TYPE, HeaderMap, HeaderValue};
 
 use crate::error::{Error, Result};
 
-use super::{ImageFormat, ImageSummarizer, factory::header_value};
+use super::{ImageFormat, ImageSummarizer, factory::header_value, types::require_success};
 
 /// Anthropic summarizer.
 #[derive(Debug)]
@@ -50,7 +50,7 @@ impl ImageSummarizer for AnthropicImageSummarizer {
         headers.insert("x-api-key", header_value(&self.api_key)?);
         headers.insert("anthropic-version", HeaderValue::from_static("2023-06-01"));
         headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
-        let response: serde_json::Value = self
+        let response = self
             .client
             .post(&self.endpoint)
             .headers(headers)
@@ -59,12 +59,15 @@ impl ImageSummarizer for AnthropicImageSummarizer {
             .await
             .map_err(|err| Error::AiSummarization {
                 reason: format!("anthropic request failed: {err}"),
-            })?
-            .json()
-            .await
-            .map_err(|err| Error::AiSummarization {
-                reason: format!("anthropic response parse failed: {err}"),
             })?;
+        let response = require_success(response, "anthropic")?;
+        let response: serde_json::Value =
+            response
+                .json()
+                .await
+                .map_err(|err| Error::AiSummarization {
+                    reason: format!("anthropic response parse failed: {err}"),
+                })?;
         response["content"][0]["text"]
             .as_str()
             .map(ToString::to_string)

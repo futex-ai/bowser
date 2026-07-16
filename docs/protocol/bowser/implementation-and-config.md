@@ -207,9 +207,12 @@ The destination path must name a file, not a directory. Parent directories must
 already exist. Download failures return structured Bowser errors instead of
 silently falling back to a direct HTTP client, because direct fetches do not
 preserve browser cookies, redirects, challenges, or other page state.
+Failures to configure Chrome or start the download navigation return
+`Download` immediately. `DownloadTimeout` is reserved for navigation that
+started successfully but did not produce a completed file before the deadline.
 
 ### Precedence
 
 CLI flags > environment variables > config file > defaults.
 
-For Anthropic and OpenAI providers, `api_key_env` names the environment variable that contains the actual provider API key. If that environment variable is missing or empty, compact YAML omits `describable: true`, regular captures stay structural, and explicit `describe` requests fail unless a cached description already exists. For Ollama, enabled local configuration is enough for `describable: true`.
+For Anthropic and OpenAI providers, `api_key_env` names the environment variable that contains the actual provider API key. If that environment variable is missing or empty, compact YAML omits `describable: true`, regular captures stay structural, and explicit `describe` requests fail unless a cached description already exists. For Ollama, enabled local configuration is enough for `describable: true`. All provider clients reject non-success HTTP responses before parsing the response body and retain the HTTP status in the returned `AiSummarization` error.

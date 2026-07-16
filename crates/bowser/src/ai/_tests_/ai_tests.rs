@@ -1,4 +1,4 @@
-use axum::http::HeaderMap;
+use axum::http::{HeaderMap, StatusCode};
 use axum::routing::post;
 use axum::{Json, Router};
 use serde_json::{Value, json};
@@ -58,6 +58,31 @@ async fn provider_clients_use_mock_endpoints() {
     );
 }
 
+#[tokio::test]
+async fn provider_clients_report_http_error_statuses() {
+    let server = mock_server().await;
+
+    for provider in [
+        AiProvider::Anthropic,
+        AiProvider::OpenAi,
+        AiProvider::Ollama,
+    ] {
+        let mut config = sample_config(provider);
+        config.endpoint = Some(server.url("/provider-error"));
+        let client = build_image_summarizer(&config).expect("provider client");
+
+        let error = client
+            .describe(b"png", ImageFormat::Png)
+            .await
+            .expect_err("provider HTTP error");
+
+        assert!(
+            error.to_string().contains("429"),
+            "provider error omitted HTTP status: {error}"
+        );
+    }
+}
+
 fn sample_config(provider: AiProvider) -> AiConfig {
     AiConfig {
         enabled: true,
@@ -89,7 +114,8 @@ async fn mock_server() -> MockServer {
     let app = Router::new()
         .route("/anthropic", post(anthropic_handler))
         .route("/openai", post(openai_handler))
-        .route("/ollama", post(ollama_handler));
+        .route("/ollama", post(ollama_handler))
+        .route("/provider-error", post(provider_error_handler));
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
         .await
         .expect("bind mock server");
@@ -125,4 +151,11 @@ async fn ollama_handler(Json(body): Json<Value>) -> Json<Value> {
     assert_eq!(body["model"], "test-model");
     assert_eq!(body["stream"], false);
     Json(json!({ "response": "ollama mock" }))
+}
+
+async fn provider_error_handler() -> (StatusCode, Json<Value>) {
+    (
+        StatusCode::TOO_MANY_REQUESTS,
+        Json(json!({ "error": { "message": "rate limited" } })),
+    )
 }

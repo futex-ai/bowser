@@ -32,6 +32,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     outputs:
+      commit_sha: ${{ steps.release.outputs.commit_sha }}
       release_title: ${{ steps.release.outputs.release_title }}
       tag: ${{ steps.release.outputs.tag }}
       version: ${{ steps.release.outputs.version }}
@@ -40,7 +41,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
-          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
+          ref: ${{ github.event_name == 'workflow_dispatch' && format('refs/tags/{0}', inputs.tag) || github.ref }}
 
       - name: Install system dependencies
         run: |
@@ -68,7 +69,10 @@ jobs:
         id: release
         env:
           RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
-        run: scripts/release.sh validate-tag "$RELEASE_TAG" Cargo.toml >> "$GITHUB_OUTPUT"
+        run: |
+          scripts/release.sh validate-tag "$RELEASE_TAG" Cargo.toml >> "$GITHUB_OUTPUT"
+          commit_sha=$(git rev-parse HEAD)
+          echo "commit_sha=$commit_sha" >> "$GITHUB_OUTPUT"
 
       - name: Run repository checks
         run: cargo xtask check
@@ -91,10 +95,10 @@ jobs:
           - runner: macos-15
             target: aarch64-apple-darwin
     steps:
-      - name: Check out release tag
+      - name: Check out verified release commit
         uses: actions/checkout@v6
         with:
-          ref: ${{ needs.verify.outputs.tag }}
+          ref: ${{ needs.verify.outputs.commit_sha }}
 
       - name: Install Linux dependencies
         if: runner.os == 'Linux'

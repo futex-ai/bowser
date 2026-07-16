@@ -130,3 +130,25 @@ fn pull_request_actionlint_download_retries_transient_failures() {
         );
     }
 }
+
+#[test]
+fn release_builds_checkout_the_verified_commit() {
+    let workflow = include_str!("../../../.github/workflows/release.yml");
+
+    assert!(
+        workflow.contains("commit_sha: ${{ steps.release.outputs.commit_sha }}"),
+        "verify job must export the checked-out release commit"
+    );
+    assert!(
+        workflow.contains("commit_sha=$(git rev-parse HEAD)"),
+        "release validation must capture the exact checked-out commit"
+    );
+    assert!(
+        workflow.contains("ref: ${{ needs.verify.outputs.commit_sha }}"),
+        "build jobs must checkout the commit validated by the verify job"
+    );
+    assert!(
+        workflow.contains("format('refs/tags/{0}', inputs.tag)"),
+        "manual releases must resolve an explicitly qualified tag ref"
+    );
+}

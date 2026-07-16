@@ -6,7 +6,7 @@ use reqwest::header::{AUTHORIZATION, CONTENT_TYPE, HeaderMap, HeaderValue};
 
 use crate::error::{Error, Result};
 
-use super::{ImageFormat, ImageSummarizer, factory::header_value};
+use super::{ImageFormat, ImageSummarizer, factory::header_value, types::require_success};
 
 /// OpenAI summarizer.
 #[derive(Debug)]
@@ -47,7 +47,7 @@ impl ImageSummarizer for OpenAiImageSummarizer {
             header_value(format!("Bearer {}", self.api_key))?,
         );
         headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
-        let response: serde_json::Value = self
+        let response = self
             .client
             .post(&self.endpoint)
             .headers(headers)
@@ -56,12 +56,15 @@ impl ImageSummarizer for OpenAiImageSummarizer {
             .await
             .map_err(|err| Error::AiSummarization {
                 reason: format!("openai request failed: {err}"),
-            })?
-            .json()
-            .await
-            .map_err(|err| Error::AiSummarization {
-                reason: format!("openai response parse failed: {err}"),
             })?;
+        let response = require_success(response, "openai")?;
+        let response: serde_json::Value =
+            response
+                .json()
+                .await
+                .map_err(|err| Error::AiSummarization {
+                    reason: format!("openai response parse failed: {err}"),
+                })?;
         response["output"][0]["content"][0]["text"]
             .as_str()
             .map(ToString::to_string)

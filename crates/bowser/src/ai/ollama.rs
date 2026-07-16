@@ -5,7 +5,7 @@ use base64::{Engine, engine::general_purpose::STANDARD};
 
 use crate::error::{Error, Result};
 
-use super::{ImageFormat, ImageSummarizer};
+use super::{ImageFormat, ImageSummarizer, types::require_success};
 
 /// Ollama summarizer.
 #[derive(Debug)]
@@ -34,7 +34,7 @@ impl ImageSummarizer for OllamaImageSummarizer {
             "images": [STANDARD.encode(image_bytes)],
             "stream": false
         });
-        let response: serde_json::Value = self
+        let response = self
             .client
             .post(&self.endpoint)
             .json(&body)
@@ -42,12 +42,15 @@ impl ImageSummarizer for OllamaImageSummarizer {
             .await
             .map_err(|err| Error::AiSummarization {
                 reason: format!("ollama request failed: {err}"),
-            })?
-            .json()
-            .await
-            .map_err(|err| Error::AiSummarization {
-                reason: format!("ollama response parse failed: {err}"),
             })?;
+        let response = require_success(response, "ollama")?;
+        let response: serde_json::Value =
+            response
+                .json()
+                .await
+                .map_err(|err| Error::AiSummarization {
+                    reason: format!("ollama response parse failed: {err}"),
+                })?;
         response["response"]
             .as_str()
             .map(ToString::to_string)

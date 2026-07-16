@@ -66,7 +66,7 @@ cargo xtask check
 - ARIA checkable controls such as `role="checkbox"`, `role="radio"`, and `role="switch"` are captured as actionable inputs, including labels resolved from `aria-label` or `aria-labelledby`
 - Compact YAML image labels prefer `alt` plus the source filename; when AI is currently available, image nodes add `describable: true` so callers can opt into `PageEngine::describe`
 - Regular captures and post-action REPL re-captures stay structural; Bowser only calls the AI provider during explicit `PageEngine::describe` requests
-- `PageEngine::describe` is best-effort: missing credentials, screenshot failures, or provider failures do not affect structural page capture, and a later describe call may still return a cached explicit description on demand
+- `PageEngine::describe` is best-effort: missing credentials, screenshot failures, or provider failures do not affect structural page capture, provider HTTP failures retain their status code, and a later describe call may still return a cached explicit description on demand
 - Hidden or obscured semantic content is included by default under `content.obscured`; `BrowserConfig.output.include_hidden` is retained as a legacy no-op, and the CLI `--all` shorthand disables truncation
 - `PageEngine::type_text`, `PageEngine::press_keys`, and `PageEngine::clear` now use real CDP keyboard input with fast randomized pauses instead of synthetic DOM keyboard events
 - `PageEngine::submit` prefers Enter on text-like controls or a real click on submit buttons before falling back to DOM form submission helpers
@@ -94,7 +94,7 @@ cargo xtask check
 - Bowser's default stealth path is the Google-safe headed path: full JS DOM capture, backend-node focus, Enter submit for search forms, and Runtime-domain events left enabled; see the protocol ledger for current live smoke evidence
 - `BOWSER_INTERNAL_STEALTH_FEATURES` is a developer-only experiment override used by the Google smoke matrix to toggle one stealth behavior at a time; it is not part of the CLI contract
 - Bowser does not expose proxy transport; use a VPN outside Bowser when browser traffic must leave through a different network route or IP address
-- Browser-native downloads use the active Chrome session so redirects, cookies, and `Content-Disposition` behavior are handled by the browser rather than by a separate HTTP client
+- Browser-native downloads use the active Chrome session so redirects, cookies, and `Content-Disposition` behavior are handled by the browser rather than by a separate HTTP client; Chrome configuration or navigation failures return immediately, while `DownloadTimeout` is reserved for a started download that never completes
 - Headed Linux sessions start Xvfb only when neither `DISPLAY` nor `WAYLAND_DISPLAY` is available, apply the configured viewport as Chrome's window size on that synthetic display, and validate the stored Xvfb display before terminating the helper PID during cleanup
 
 ### Key Code

@@ -51,10 +51,15 @@ impl LivePage {
         let url_json = serde_json::to_string(url).map_err(|err| Error::Download {
             reason: format!("failed to encode download URL: {err}"),
         })?;
-        let _ = self
+        if let Err(error) = self
             .page
             .evaluate(format!("window.location.href = {url_json};"))
-            .await;
+            .await
+        {
+            return Err(Error::Download {
+                reason: format!("failed to start browser download: {error}"),
+            });
+        }
         let downloaded = wait_for_download(temp_dir, self.config.timeout).await?;
         let filename = downloaded
             .file_name()
