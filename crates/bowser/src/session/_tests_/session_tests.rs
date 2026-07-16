@@ -4,6 +4,9 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
+#[cfg(unix)]
+use std::os::unix::fs::PermissionsExt;
+
 use chrono::{Duration as ChronoDuration, Utc};
 use tempfile::tempdir;
 
@@ -31,6 +34,49 @@ async fn file_store_round_trips_metadata() {
     assert_eq!(loaded.id, metadata.id);
     assert_eq!(loaded.pid, 4242);
     assert_eq!(loaded.http_url, "http://127.0.0.1:9222");
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn file_store_atomically_replaces_read_only_metadata() {
+    let dir = tempdir().expect("tempdir");
+    let store = FileSessionStore::new(dir.path().to_path_buf());
+    let mut metadata = SessionMetadata::new(
+        "http://127.0.0.1:9222".to_string(),
+        "ws://127.0.0.1:9222/devtools/browser/test".to_string(),
+        4242,
+        PathBuf::from("/tmp/bowser-profile"),
+    );
+    store.save(&metadata).await.expect("initial save");
+    let path = store.session_path(&metadata.id).expect("session path");
+    let mut permissions = std::fs::metadata(&path).expect("metadata").permissions();
+    permissions.set_mode(0o444);
+    std::fs::set_permissions(&path, permissions).expect("make metadata read-only");
+
+    metadata.pid = 5252;
+    store.save(&metadata).await.expect("atomic replacement");
+
+    let loaded = store.load(&metadata.id).await.expect("load replacement");
+    assert_eq!(loaded.pid, 5252);
+}
+
+#[tokio::test]
+async fn file_store_listing_skips_one_corrupt_metadata_document() {
+    let dir = tempdir().expect("tempdir");
+    let store = FileSessionStore::new(dir.path().to_path_buf());
+    let metadata = SessionMetadata::new(
+        "http://127.0.0.1:9222".to_string(),
+        "ws://127.0.0.1:9222/devtools/browser/test".to_string(),
+        4242,
+        PathBuf::from("/tmp/bowser-profile"),
+    );
+    store.save(&metadata).await.expect("save valid metadata");
+    std::fs::write(dir.path().join("bsr_corrupt.json"), "{").expect("write corrupt metadata");
+
+    let sessions = store.list().await.expect("list valid metadata");
+
+    assert_eq!(sessions.len(), 1);
+    assert_eq!(sessions[0].id, metadata.id);
 }
 
 #[tokio::test]

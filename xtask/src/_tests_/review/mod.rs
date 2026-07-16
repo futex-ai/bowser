@@ -148,7 +148,7 @@ fn review_runner_with_sensitive_staged_change(codex_prompts: Arc<Mutex<Vec<Strin
             .each_call(matching!(_, _))
             .answers(&|_, _, args| {
                 if args == STAGED_CHANGED_FILES_ARGS {
-                    return Ok(b"M\0.env.local\0".to_vec());
+                    return Ok(b"M\0.env.local\0M\0secrets/rotate.rs\0".to_vec());
                 }
 
                 Ok(Vec::new())

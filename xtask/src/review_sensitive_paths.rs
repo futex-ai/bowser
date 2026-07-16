@@ -119,6 +119,11 @@ fn is_always_sensitive_directory(component: &str) -> bool {
             | ".azure"
             | ".gcloud"
             | ".kube"
+            | "credentials"
+            | "secrets"
+            | "tokens"
+            | "private_key"
+            | "private-key"
     )
 }
 

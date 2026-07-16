@@ -77,6 +77,9 @@ fn tracked_sensitive_config_filenames_with_extensions_are_sensitive() {
     assert!(is_sensitive_tracked_relative_path("tokens.local.json"));
     assert!(is_sensitive_tracked_relative_path("config/api_token.txt"));
     assert!(is_sensitive_tracked_relative_path("tokens/prod.yml"));
+    assert!(is_sensitive_tracked_relative_path("secrets/rotate.rs"));
+    assert!(is_sensitive_tracked_relative_path("credentials/export.sh"));
+    assert!(is_sensitive_tracked_relative_path("tokens/private.rs"));
     assert!(!is_sensitive_tracked_relative_path("src/auth/token.rs"));
     assert!(!is_sensitive_tracked_relative_path("src/auth/token/mod.rs"));
     assert!(!is_sensitive_tracked_relative_path(

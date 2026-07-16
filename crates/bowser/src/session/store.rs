@@ -1,9 +1,11 @@
 //! Session storage trait and filesystem implementation.
 
 use std::fs;
+use std::io::Write;
 use std::path::{Path, PathBuf};
 
 use async_trait::async_trait;
+use tempfile::NamedTempFile;
 
 use crate::error::{Error, Result};
 
@@ -69,7 +71,7 @@ impl SessionStore for FileSessionStore {
                 metadata.id
             ))
         })?;
-        fs::write(path, contents).map_err(|err| Error::io("write session metadata", err))
+        write_metadata_atomically(&self.root, &path, contents.as_bytes())
     }
 
     async fn list(&self) -> Result<Vec<SessionMetadata>> {
@@ -96,9 +98,28 @@ impl SessionStore for FileSessionStore {
                 if validate_session_id(session_id).is_err() {
                     continue;
                 }
-                let contents =
-                    fs::read_to_string(&path).map_err(|err| Error::io("read session file", err))?;
-                let metadata = deserialize_metadata(&contents, session_id)?;
+                let contents = match fs::read_to_string(&path) {
+                    Ok(contents) => contents,
+                    Err(error) => {
+                        tracing::warn!(
+                            session_id,
+                            error = %error,
+                            "skipping unreadable session metadata"
+                        );
+                        continue;
+                    }
+                };
+                let metadata = match deserialize_metadata(&contents, session_id) {
+                    Ok(metadata) => metadata,
+                    Err(error) => {
+                        tracing::warn!(
+                            session_id,
+                            error = %error,
+                            "skipping invalid session metadata"
+                        );
+                        continue;
+                    }
+                };
                 sessions.push(metadata);
             }
         }
@@ -113,6 +134,23 @@ impl SessionStore for FileSessionStore {
             fs::remove_file(path).map_err(|err| Error::io("remove session metadata", err))?;
         }
         Ok(())
+    }
+}
+
+fn write_metadata_atomically(root: &Path, path: &Path, contents: &[u8]) -> Result<()> {
+    let mut temporary = match NamedTempFile::new_in(root) {
+        Ok(temporary) => temporary,
+        Err(source) => return Err(Error::io("create session metadata temporary file", source)),
+    };
+    if let Err(source) = temporary.write_all(contents) {
+        return Err(Error::io("write session metadata temporary file", source));
+    }
+    if let Err(source) = temporary.as_file().sync_all() {
+        return Err(Error::io("sync session metadata temporary file", source));
+    }
+    match temporary.persist(path) {
+        Ok(_) => Ok(()),
+        Err(error) => Err(Error::io("replace session metadata", error.error)),
     }
 }
 

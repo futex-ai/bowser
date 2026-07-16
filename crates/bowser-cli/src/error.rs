@@ -14,8 +14,15 @@ pub enum CliError {
     #[error("[bowser-cli/io] failed to write output: {path}")]
     OutputWrite { path: String },
 
-    #[error("[bowser-cli/config] failed to load config: {path}")]
-    ConfigLoad { path: String },
+    /// Bowser could not load or validate the requested configuration.
+    #[error("[bowser-cli/config] failed to load config {path}: {source}")]
+    ConfigLoad {
+        /// Configuration path used for the load attempt.
+        path: String,
+        /// Typed library failure that explains the load error.
+        #[source]
+        source: bowser::Error,
+    },
 
     #[error("[bowser-cli/repl] invalid command: {input}")]
     InvalidCommand { input: String },

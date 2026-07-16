@@ -74,6 +74,7 @@ fn tracked_sensitive_paths_omit_diff_body() {
     let prompts = codex_prompts.lock().expect("codex prompts");
     assert_eq!(prompts.len(), 1);
     assert!(prompts[0].contains(".env.local"));
+    assert!(prompts[0].contains("secrets/rotate.rs"));
     assert!(prompts[0].contains("<omitted_paths_json"));
     assert!(prompts[0].contains("\".env.local\""));
     assert!(prompts[0].contains(

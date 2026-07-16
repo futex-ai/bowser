@@ -31,7 +31,9 @@ not opened or included in diff bodies. Untracked paths use a conservative
 component-name boundary. Tracked config/data artifacts with secret, password,
 credential, or token components are also omitted, while recognized source and
 documentation files remain reviewable even beneath broadly named directories
-such as `token/`; explicit secret directories such as `.aws/` remain omitted.
+such as `token/`. Explicit secret-store directories such as `.aws/`, `secrets/`,
+`credentials/`, and `tokens/` remain omitted even when they contain source-like
+files.
 
 ## Quick Start
 

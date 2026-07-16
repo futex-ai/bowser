@@ -87,6 +87,7 @@ BOWSER_GOOGLE_SMOKE=1 cargo test -p bowser-cli --test interactive_repl google_se
 
 - Top-level CLI parsing and dispatch now live in [`src/args.rs`](./src/args.rs), [`src/cli.rs`](./src/cli.rs), and [`src/dispatch.rs`](./src/dispatch.rs), while [`src/main.rs`](./src/main.rs) stays as the thin binary entrypoint
 - CLI and merged library configuration reject zero-width or zero-height viewports before Chrome or Xvfb starts
+- Configuration load failures report both the selected path and the underlying parse, I/O, or validation cause
 - The local pointer telemetry command lives in [`src/commands/pointer_log/`](./src/commands/pointer_log), shows one randomized target element at a time, appends one JSON object per event to a configurable JSONL file that defaults to the repo-root gitignored `browser-log` in manual mode, omits session IDs and user-agent strings, and records a `target_spawn` row with target bounds each time a new target is placed
 - Pointer-log demo mode starts the same loopback server, launches headed Chrome through the `bowser` library, drives the page with `PageEngine::click`, and renders an in-page cursor trail plus click pulse so CDP pointer movement is visible.
 - Stealth is conservative: Bowser cleans obvious automation leaks and keeps native Chrome fingerprint values unless a complete browser identity profile is designed and tested as one system.

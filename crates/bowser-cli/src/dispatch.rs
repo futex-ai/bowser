@@ -55,11 +55,12 @@ fn load_browser_config(
 ) -> Result<bowser::BrowserConfig> {
     match bowser::load_config(config_path.as_deref(), overrides) {
         Ok(config) => Ok(config),
-        Err(_) => Err(CliError::ConfigLoad {
+        Err(source) => Err(CliError::ConfigLoad {
             path: config_path
                 .unwrap_or_else(bowser::default_config_path)
                 .display()
                 .to_string(),
+            source,
         }),
     }
 }
@@ -89,3 +90,7 @@ pub(crate) fn build_env_filter(level: &str) -> EnvFilter {
         )
         .parse_lossy("chromiumoxide::handler=error")
 }
+
+#[cfg(test)]
+#[path = "_tests_/dispatch_tests.rs"]
+mod dispatch_tests;
