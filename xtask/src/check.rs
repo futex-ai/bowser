@@ -4,7 +4,7 @@ use std::fmt::{self, Display};
 use std::path::Path;
 use std::process::Command;
 
-use crate::check_plan::{CheckSelection, check_commands};
+use crate::check_plan::{CheckPhase, CheckSelection, check_commands};
 use crate::error::{Error, Result};
 use crate::source_layout_lint::verify_source_adjacent_test_layout;
 
@@ -81,7 +81,9 @@ pub(crate) fn run_check(
     workspace_root: &Path,
     selection: &CheckSelection,
 ) -> Result<()> {
-    verify_source_adjacent_test_layout(workspace_root)?;
+    if selection.includes(CheckPhase::RustAudit) {
+        verify_source_adjacent_test_layout(workspace_root)?;
+    }
 
     for command in check_commands(selection) {
         runner.run(command, workspace_root)?;

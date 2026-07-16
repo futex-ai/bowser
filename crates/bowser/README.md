@@ -52,6 +52,8 @@ cargo xtask check
 ```
 
 - Browser-backed integration coverage lives in the dedicated `browser_flows` test target at [`tests/browser_flows/mod.rs`](./tests/browser_flows/mod.rs), alongside focused suites such as [`tests/document_capture.rs`](./tests/document_capture.rs), [`tests/input_flows.rs`](./tests/input_flows.rs), and [`tests/pointer_click.rs`](./tests/pointer_click.rs)
+- `FileSessionStore` confines metadata filenames to opaque `bsr_` identifiers, validates document IDs against filenames, and migrates legacy metadata consistently on both load and list
+- Failed fresh launches terminate their known-owned Chrome and Xvfb processes; later session cleanup validates the live debugging-port/profile or Xvfb-display identity before signaling a persisted PID
 - Browser-backed integration tests share a 60-second launch and page timeout and disable GPU compositing so cold Chrome startup on Linux CI and headless iframe screenshots stay stable; timeout-specific tests override lower values locally when they are asserting deadline behavior
 - Test fixtures and local HTTP routes live under [`tests/support/`](./tests/support/mod.rs), with bulky HTML fixtures stored as standalone files in [`tests/fixtures/`](./tests/fixtures/)
 - AI provider tests are mocked and do not require external network access or real credentials

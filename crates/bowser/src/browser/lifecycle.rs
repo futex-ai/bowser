@@ -17,7 +17,7 @@ use crate::{
     browser_identity,
     config::BrowserConfig,
     error::{Error, Result},
-    session::{SessionMetadata, terminate_process},
+    session::{LaunchedProcessGuard, SessionMetadata, terminate_process},
     stealth_features::StealthFeatures,
 };
 
@@ -112,7 +112,13 @@ pub(super) async fn launch_chrome(
     chrome_path: &Path,
     user_data_dir: &Path,
     port: u16,
-) -> Result<(u32, String, String, Option<XvfbSession>)> {
+) -> Result<(
+    u32,
+    String,
+    String,
+    Option<XvfbSession>,
+    LaunchedProcessGuard,
+)> {
     let display = prepare_headed_display(config)?;
     let mut command = Command::new(chrome_path);
     #[cfg(unix)]
@@ -140,25 +146,12 @@ pub(super) async fn launch_chrome(
         }
     };
     let pid = child.id();
+    let process_guard =
+        LaunchedProcessGuard::system(pid, display.xvfb.as_ref().map(|xvfb| xvfb.pid));
     let http_url = format!("http://127.0.0.1:{port}");
-    if let Err(err) = wait_for_debug_endpoint(&http_url, config.timeout).await {
-        terminate_process(pid);
-        if let Some(xvfb) = display.xvfb.as_ref() {
-            terminate_process(xvfb.pid);
-        }
-        return Err(err);
-    }
-    let websocket_url = match fetch_websocket_url(&http_url).await {
-        Ok(websocket_url) => websocket_url,
-        Err(err) => {
-            terminate_process(pid);
-            if let Some(xvfb) = display.xvfb.as_ref() {
-                terminate_process(xvfb.pid);
-            }
-            return Err(err);
-        }
-    };
-    Ok((pid, http_url, websocket_url, display.xvfb))
+    wait_for_debug_endpoint(&http_url, config.timeout).await?;
+    let websocket_url = fetch_websocket_url(&http_url).await?;
+    Ok((pid, http_url, websocket_url, display.xvfb, process_guard))
 }
 
 async fn wait_for_debug_endpoint(http_url: &str, timeout: Duration) -> Result<()> {

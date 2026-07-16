@@ -13,7 +13,7 @@ All CLI commands run against a resumable browser session. If `--session <ID>` is
 
 ## Session Lifecycle
 
-A Bowser session is a detached browser instance plus persisted metadata, identified by an opaque session ID.
+A Bowser session is a detached browser instance plus persisted metadata, identified by an opaque session ID. Generated IDs use `bsr_` followed by ASCII letters, digits, `_`, or `-`, with a maximum total length of 128 bytes. The filesystem store rejects every other shape before constructing a path, and the metadata document's ID must match its `bsr_<ID>.json` filename.
 
 Sessions preserve:
 
@@ -62,4 +62,6 @@ Resume and page-selection behaviour:
 
 Live page reconciliation must bound Chrome URL/title metadata probes and fall back to stored page metadata when a target is stale or slow to answer. Page listing, switching, creating, and closing pages must not wait for an unbounded target-state read.
 
-Legacy single-page session metadata should migrate forward to the multi-page metadata shape on first load.
+Legacy single-page session metadata should migrate forward to the multi-page metadata shape on first load or list. Loading and listing must use the same migration path so one legacy entry cannot prevent session cleanup or enumeration.
+
+Session close and expiry cleanup treat persisted PIDs as untrusted, reusable operating-system identifiers. Bowser may terminate the stored Chrome PID only when the live command line still contains both the stored remote-debugging port and user-data directory. It may terminate an Xvfb PID only when its executable and display still match the stored session. A newly launched Chrome/Xvfb pair is guarded separately as known-owned: any connection or metadata-persistence failure terminates both before the launch returns an error.

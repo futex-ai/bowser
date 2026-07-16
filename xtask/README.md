@@ -40,6 +40,9 @@ cargo xtask review
 Available check phases are `scripts`, `workflow`, `rust-audit`,
 `rust-fmt`, `rust-clippy`, `rust-test`, and `bowser`. Repeat
 `--include` or `--exclude`, or pass comma-separated values.
+The source-adjacent test-layout validation belongs to `rust-audit`, so a focused
+phase does not fail on an audit the caller did not select; an unfiltered full
+check still runs it.
 
 ## Development
 

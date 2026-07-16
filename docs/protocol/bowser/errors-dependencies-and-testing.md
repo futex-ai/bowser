@@ -33,6 +33,17 @@ pub enum Error {
     #[error("[bowser/session] session expired: {session_id}")]
     SessionExpired { session_id: String },
 
+    #[error("[bowser/session] invalid session identifier: {session_id}")]
+    InvalidSessionId { session_id: String },
+
+    #[error(
+        "[bowser/session] metadata identifier mismatch: expected {expected_session_id}, found {actual_session_id}"
+    )]
+    SessionIdMismatch {
+        expected_session_id: String,
+        actual_session_id: String,
+    },
+
     #[error("[bowser/session] page not found: {page_id}")]
     SessionPageNotFound { page_id: String },
 
@@ -230,7 +241,7 @@ typed command-layer failures for output, REPL, and pointer-log handling.
 - **Capture/flattening logic**: test the DOM-to-element-tree transformation with mock DOM JSON inputs. Verify flattening rules, root visible/obscured splitting, wrapper promotion, and text merging.
 - **YAML/JSON serialization**: snapshot tests for compact YAML output and full-fidelity round-trip tests for JSON.
 - **Config parsing**: test precedence rules, defaults, and invalid config handling.
-- **Session lifecycle**: test session ID generation, metadata persistence, TTL expiry, resume behaviour, and stale-session cleanup.
+- **Session lifecycle**: test session ID generation, path confinement, filename/document identity, metadata persistence, TTL expiry, resume behaviour, fresh-launch rollback, and stale-PID-safe cleanup through mocked process control.
 - **Session page management**: test stable page-ID assignment, selected-page persistence, legacy single-page metadata migration, and page-summary generation.
 - **Truncation logic**: test preview limits for lists, tables, and container children, plus emitted `truncation` metadata.
 - **Stealth patch generation**: verify the JS patches are syntactically valid.

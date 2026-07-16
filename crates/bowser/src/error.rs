@@ -30,6 +30,24 @@ pub enum Error {
     #[error("[bowser/session] session expired: {session_id}")]
     SessionExpired { session_id: String },
 
+    /// The supplied identifier cannot name a file-backed Bowser session.
+    #[error("[bowser/session] invalid session identifier: {session_id}")]
+    InvalidSessionId {
+        /// Rejected identifier.
+        session_id: String,
+    },
+
+    /// A stored metadata document claims a different identifier than its filename.
+    #[error(
+        "[bowser/session] metadata identifier mismatch: expected {expected_session_id}, found {actual_session_id}"
+    )]
+    SessionIdMismatch {
+        /// Identifier derived from the requested metadata filename.
+        expected_session_id: String,
+        /// Identifier contained in the metadata document.
+        actual_session_id: String,
+    },
+
     #[error("[bowser/session] page not found: {page_id}")]
     SessionPageNotFound { page_id: String },
 

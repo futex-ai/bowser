@@ -98,7 +98,7 @@ impl Browser {
                 std::fs::create_dir_all(&user_data_dir)
                     .map_err(|err| crate::error::Error::io("create user data directory", err))?;
                 let port = allocate_port()?;
-                let (pid, http_url, websocket_url, xvfb) =
+                let (pid, http_url, websocket_url, xvfb, mut process_guard) =
                     launch_chrome(&config, &chrome_path, &user_data_dir, port).await?;
                 let mut metadata = crate::session::SessionMetadata::new(
                     http_url.clone(),
@@ -111,8 +111,12 @@ impl Browser {
                     metadata.xvfb_display = Some(xvfb.display);
                 }
                 let session_id = metadata.id.clone();
-                store.save(&metadata).await?;
                 let (browser, handler_task) = connect_browser(&http_url).await?;
+                if let Err(error) = store.save(&metadata).await {
+                    handler_task.abort();
+                    return Err(error);
+                }
+                process_guard.disarm();
                 (
                     SessionInfo {
                         id: session_id,

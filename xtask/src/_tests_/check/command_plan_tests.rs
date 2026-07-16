@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 
 use unimock::{MockFn, Unimock, matching};
 
-use crate::check_plan::{CheckSelection, check_commands};
+use crate::check_plan::{CheckPhase, CheckSelection, check_commands};
 
 use super::super::*;
 
@@ -110,6 +110,24 @@ fn check_runs_the_complete_standalone_bowser_plan() {
             .iter()
             .all(|command| command.program != "cargo" || command.args != ["clean"])
     );
+}
+
+#[test]
+fn focused_check_does_not_run_an_unselected_source_layout_audit() {
+    let runner = Unimock::new(
+        CommandRunnerMock::run
+            .next_call(matching!(_, _))
+            .returns(Ok(())),
+    );
+    let workspace = temp_workspace();
+    std::fs::write(
+        workspace.path().join("xtask/src/invalid.rs"),
+        "#[test]\nfn inline_test() {}\n",
+    )
+    .unwrap();
+    let selection = CheckSelection::from_filters(vec![CheckPhase::RustFmt], Vec::new());
+
+    run_check(&runner, workspace.path(), &selection).unwrap();
 }
 
 struct TempWorkspace {

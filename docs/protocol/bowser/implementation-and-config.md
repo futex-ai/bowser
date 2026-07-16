@@ -71,6 +71,14 @@ Fresh Bowser sessions create and select a Bowser-owned blank page target before 
 Before a page is returned to callers, activation must validate the page target by sending a real CDP runtime evaluation. A cached URL or title read is not enough to prove that the target session can accept later navigation, capture, and interaction commands.
 If Chrome reports that the target session is missing during that validation, Bowser must reacquire a fresh page handle for the same target and retry before returning an error.
 
+## Session Persistence and Process Ownership
+
+`FileSessionStore` confines metadata access to validated `bsr_` identifiers and requires each deserialized document ID to match its filename. Both `load` and `list` deserialize through the legacy-aware raw metadata shape before exposing current `SessionMetadata`.
+
+Freshly spawned Chrome and Xvfb processes remain behind an armed ownership guard while Bowser connects to Chrome and persists session metadata. An error at either boundary terminates every newly owned process; the guard is disarmed only after both operations succeed.
+
+Persisted PIDs are not proof of ownership because operating systems reuse them. Later close and expiry paths inspect the live process command line before sending a termination signal. Chrome must retain the session's exact `--remote-debugging-port` and `--user-data-dir` arguments. Xvfb must retain both the Xvfb program identity and stored display argument. If inspection fails or either identity check differs, cleanup skips that PID.
+
 ## Configuration
 
 ### Config File
@@ -170,9 +178,9 @@ display server:
 Any Xvfb process started by Bowser is part of the browser session. Detached
 sessions keep Xvfb alive with Chrome, and closing or expiring the Bowser session
 must terminate both the Chrome process and the Xvfb process. Session metadata
-stores the Xvfb PID and display string so cleanup does not rely on process-name
-matching alone; the stored display must still match the live Xvfb command line
-before Bowser terminates the helper process.
+stores the Xvfb PID and display string; both the Xvfb program identity and stored
+display must still match the live command line before Bowser terminates the
+helper process.
 
 When `chrome.headless` remains true and stealth is enabled, Bowser intentionally
 omits `--headless=new` and launches Chrome as a headed browser without forcing

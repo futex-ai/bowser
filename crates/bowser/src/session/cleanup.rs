@@ -1,72 +1,87 @@
 //! Session cleanup helpers.
 
-#[cfg(target_os = "linux")]
-use std::fs;
-use std::process::{Command, Stdio};
 use std::sync::Arc;
 
 use chrono::Utc;
+use url::Url;
 
-use super::metadata::SessionMetadata;
-use super::store::SessionStore;
 use crate::error::Result;
 use crate::model::SessionSummary;
 
+use super::metadata::SessionMetadata;
+use super::process::{ProcessControl, SystemProcessControl};
+use super::store::SessionStore;
+
 /// Best-effort process termination for detached Chrome instances.
 pub fn terminate_process(pid: u32) {
-    #[cfg(unix)]
-    let _ = Command::new("kill")
-        .arg(pid.to_string())
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .status();
-    #[cfg(windows)]
-    let _ = Command::new("taskkill")
-        .args(["/PID", &pid.to_string(), "/F"])
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .status();
+    SystemProcessControl.terminate(pid);
 }
 
 /// Best-effort process termination for a detached Bowser session.
 pub fn terminate_session_processes(session: &SessionMetadata) {
-    terminate_process(session.pid);
-    if let Some(pid) = xvfb_pid_to_terminate(session) {
-        terminate_process(pid);
+    terminate_session_processes_with(&SystemProcessControl, session);
+}
+
+pub(crate) fn terminate_session_processes_with(
+    control: &dyn ProcessControl,
+    session: &SessionMetadata,
+) {
+    if control
+        .command_line(session.pid)
+        .is_some_and(|cmdline| chrome_cmdline_matches(&cmdline, session))
+    {
+        control.terminate(session.pid);
+    }
+    if let Some(pid) = xvfb_pid_to_terminate_with(control, session) {
+        control.terminate(pid);
     }
 }
 
-pub(crate) fn xvfb_pid_to_terminate(session: &SessionMetadata) -> Option<u32> {
+pub(crate) fn xvfb_pid_to_terminate_with(
+    control: &dyn ProcessControl,
+    session: &SessionMetadata,
+) -> Option<u32> {
     let pid = session.xvfb_pid?;
     let display = session.xvfb_display.as_deref()?;
-    if pid == session.pid || !process_matches_xvfb(pid, display) {
+    if pid == session.pid
+        || !control
+            .command_line(pid)
+            .is_some_and(|cmdline| xvfb_cmdline_matches(&cmdline, display))
+    {
         return None;
     }
     Some(pid)
 }
 
-#[cfg(target_os = "linux")]
-fn process_matches_xvfb(pid: u32, display: &str) -> bool {
-    let path = format!("/proc/{pid}/cmdline");
-    let contents = match fs::read(path) {
-        Ok(contents) => contents,
-        Err(_) => return false,
+pub(crate) fn chrome_cmdline_matches(cmdline: &[String], session: &SessionMetadata) -> bool {
+    let Some(port) = Url::parse(&session.http_url)
+        .ok()
+        .and_then(|url| url.port())
+    else {
+        return false;
     };
-    let cmdline = contents
-        .split(|byte| *byte == 0)
-        .filter(|part| !part.is_empty())
-        .filter_map(|part| std::str::from_utf8(part).ok())
-        .map(ToString::to_string)
-        .collect::<Vec<_>>();
-    xvfb_cmdline_matches(&cmdline, display)
+    let port_argument = format!("--remote-debugging-port={port}");
+    let profile_argument = format!("--user-data-dir={}", session.user_data_dir.display());
+    has_argument(cmdline, &port_argument) && has_argument(cmdline, &profile_argument)
 }
 
-#[cfg(not(target_os = "linux"))]
-fn process_matches_xvfb(_pid: u32, _display: &str) -> bool {
-    false
+fn has_argument(cmdline: &[String], expected: &str) -> bool {
+    cmdline.iter().any(|argument| argument == expected)
+        || (cmdline.len() == 1 && combined_command_has_argument(&cmdline[0], expected))
 }
 
-#[cfg(any(target_os = "linux", test))]
+fn combined_command_has_argument(command_line: &str, expected: &str) -> bool {
+    command_line.match_indices(expected).any(|(index, _)| {
+        let before = command_line[..index].chars().next_back();
+        let after = command_line[index + expected.len()..].chars().next();
+        before.is_none_or(is_argument_boundary) && after.is_none_or(is_argument_boundary)
+    })
+}
+
+fn is_argument_boundary(character: char) -> bool {
+    character.is_whitespace() || matches!(character, '\'' | '"')
+}
+
 pub(crate) fn xvfb_cmdline_matches(cmdline: &[String], display: &str) -> bool {
     let Some(program) = cmdline.first() else {
         return false;

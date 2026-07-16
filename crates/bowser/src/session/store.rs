@@ -5,8 +5,11 @@ use std::path::{Path, PathBuf};
 
 use async_trait::async_trait;
 
-use super::metadata::{RawSessionMetadata, SessionMetadata};
 use crate::error::{Error, Result};
+
+use super::metadata::{RawSessionMetadata, SessionMetadata};
+
+const MAX_SESSION_ID_LEN: usize = 128;
 
 /// Session storage abstraction.
 #[cfg_attr(test, unimock::unimock(api = SessionStoreMock))]
@@ -35,15 +38,16 @@ impl FileSessionStore {
         &self.root
     }
 
-    pub(super) fn session_path(&self, session_id: &str) -> PathBuf {
-        self.root.join(format!("{session_id}.json"))
+    pub(super) fn session_path(&self, session_id: &str) -> Result<PathBuf> {
+        validate_session_id(session_id)?;
+        Ok(self.root.join(format!("{session_id}.json")))
     }
 }
 
 #[async_trait]
 impl SessionStore for FileSessionStore {
     async fn load(&self, session_id: &str) -> Result<SessionMetadata> {
-        let path = self.session_path(session_id);
+        let path = self.session_path(session_id)?;
         let contents = fs::read_to_string(&path).map_err(|err| {
             if err.kind() == std::io::ErrorKind::NotFound {
                 Error::SessionNotFound {
@@ -53,19 +57,12 @@ impl SessionStore for FileSessionStore {
                 Error::io("read session metadata", err)
             }
         })?;
-        serde_json::from_str::<RawSessionMetadata>(&contents)
-            .map(SessionMetadata::from)
-            .map_err(|err| {
-                Error::session(format!(
-                    "failed to deserialize session {}: {err}",
-                    session_id
-                ))
-            })
+        deserialize_metadata(&contents, session_id)
     }
 
     async fn save(&self, metadata: &SessionMetadata) -> Result<()> {
+        let path = self.session_path(&metadata.id)?;
         fs::create_dir_all(&self.root).map_err(|err| Error::io("create session directory", err))?;
-        let path = self.session_path(&metadata.id);
         let contents = serde_json::to_string_pretty(metadata).map_err(|err| {
             Error::session(format!(
                 "failed to serialize session {}: {err}",
@@ -92,11 +89,16 @@ impl SessionStore for FileSessionStore {
                 if entry.path().extension().and_then(|value| value.to_str()) != Some("json") {
                     continue;
                 }
-                let contents = fs::read_to_string(entry.path())
-                    .map_err(|err| Error::io("read session file", err))?;
-                let metadata: SessionMetadata = serde_json::from_str(&contents).map_err(|err| {
-                    Error::session(format!("failed to deserialize session list entry: {err}"))
-                })?;
+                let path = entry.path();
+                let Some(session_id) = path.file_stem().and_then(|value| value.to_str()) else {
+                    continue;
+                };
+                if validate_session_id(session_id).is_err() {
+                    continue;
+                }
+                let contents =
+                    fs::read_to_string(&path).map_err(|err| Error::io("read session file", err))?;
+                let metadata = deserialize_metadata(&contents, session_id)?;
                 sessions.push(metadata);
             }
         }
@@ -106,12 +108,45 @@ impl SessionStore for FileSessionStore {
     }
 
     async fn remove(&self, session_id: &str) -> Result<()> {
-        let path = self.session_path(session_id);
+        let path = self.session_path(session_id)?;
         if path.exists() {
             fs::remove_file(path).map_err(|err| Error::io("remove session metadata", err))?;
         }
         Ok(())
     }
+}
+
+fn validate_session_id(session_id: &str) -> Result<()> {
+    let suffix = session_id.strip_prefix("bsr_");
+    let valid = session_id.len() <= MAX_SESSION_ID_LEN
+        && suffix.is_some_and(|value| {
+            !value.is_empty()
+                && value
+                    .bytes()
+                    .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'_' | b'-'))
+        });
+    if valid {
+        return Ok(());
+    }
+    Err(Error::InvalidSessionId {
+        session_id: session_id.to_string(),
+    })
+}
+
+fn deserialize_metadata(contents: &str, expected_session_id: &str) -> Result<SessionMetadata> {
+    let raw = serde_json::from_str::<RawSessionMetadata>(contents).map_err(|err| {
+        Error::session(format!(
+            "failed to deserialize session {expected_session_id}: {err}"
+        ))
+    })?;
+    let metadata = SessionMetadata::from(raw);
+    if metadata.id != expected_session_id {
+        return Err(Error::SessionIdMismatch {
+            expected_session_id: expected_session_id.to_string(),
+            actual_session_id: metadata.id,
+        });
+    }
+    Ok(metadata)
 }
 
 /// Returns the default session directory.

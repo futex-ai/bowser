@@ -31,7 +31,7 @@ impl CheckSelection {
         Self { include, exclude }
     }
 
-    fn includes(&self, phase: CheckPhase) -> bool {
+    pub(crate) fn includes(&self, phase: CheckPhase) -> bool {
         (self.include.is_empty() || self.include.contains(&phase)) && !self.exclude.contains(&phase)
     }
 }
