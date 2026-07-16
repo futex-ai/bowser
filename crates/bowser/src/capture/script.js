@@ -236,6 +236,11 @@
       const rawType = tag === 'textarea' ? 'textarea' : (tag === 'select' ? 'select' : ((el.getAttribute('type') || 'text').toLowerCase()));
       const typeMap = new Set(['text', 'password', 'email', 'number', 'tel', 'url', 'search', 'textarea', 'select', 'checkbox', 'radio', 'date', 'file', 'hidden']);
       const inputType = typeMap.has(rawType) ? rawType : rawType;
+      const value = rawType === 'password'
+        ? (el.value ? '[redacted]' : '')
+        : (tag === 'select'
+          ? ((el.selectedOptions && el.selectedOptions[0] && el.selectedOptions[0].textContent) || '')
+          : (el.value || ''));
       const focused = isFocused(el);
       const id = rawType === 'hidden'
         ? null
@@ -245,9 +250,7 @@
             name: el.getAttribute('name'),
             input_type: inputType,
             placeholder: el.getAttribute('placeholder'),
-            value: tag === 'select'
-              ? ((el.selectedOptions && el.selectedOptions[0] && el.selectedOptions[0].textContent) || '')
-              : (el.value || ''),
+            value,
             label: labelFor(el),
             options: tag === 'select' ? Array.from(el.options).map((option) => option.textContent || '') : [],
             focused,
@@ -259,9 +262,7 @@
         name: el.getAttribute('name'),
         input_type: inputType,
         placeholder: el.getAttribute('placeholder'),
-        value: tag === 'select'
-          ? ((el.selectedOptions && el.selectedOptions[0] && el.selectedOptions[0].textContent) || '')
-          : (el.value || ''),
+        value,
         label: labelFor(el),
         options: tag === 'select' ? Array.from(el.options).map((option) => option.textContent || '') : [],
         focused

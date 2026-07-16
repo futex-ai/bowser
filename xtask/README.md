@@ -22,6 +22,9 @@ browser-backed integration target, CLI integration tests, and a real
 Browser-running commands set `BOWSER_HEADLESS=true` and disable the two
 headed-launch stealth experiments. Pure library and CLI unit tests run without
 those overrides so they continue to assert production defaults.
+The backend-focus replacement regression gets one additional targeted browser
+run with accessibility capture enabled so that otherwise experimental path
+stays aligned with normal text-replacement semantics.
 
 `cargo xtask review` gathers the branch diff from the merge base with
 `origin/main`, staged and unstaged changes, and guarded untracked text diffs.

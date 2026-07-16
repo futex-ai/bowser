@@ -129,6 +129,16 @@ impl LivePage {
         }
         Ok(())
     }
+
+    pub(super) async fn select_all_text(&self) -> Result<()> {
+        let mut params = DispatchKeyEventParams::new(DispatchKeyEventType::RawKeyDown);
+        params.commands = Some(vec!["selectAll".to_string()]);
+        cdp_trace::record_method("Input.dispatchKeyEvent");
+        if let Err(err) = self.page.execute(params).await {
+            return Err(Error::cdp(format!("failed to select input text: {err}")));
+        }
+        Ok(())
+    }
 }
 
 pub(super) fn finish_action_response(response: ActionResponse, element_id: u32) -> Result<()> {

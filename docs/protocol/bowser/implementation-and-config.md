@@ -66,7 +66,7 @@ depend on parent-page clipping, then fall back to the translated visual clip.
 
 ## Browser Target Attachment
 
-Fresh Bowser sessions create and select a Bowser-owned blank page target before returning the first `PageEngine`. They do not reuse Chrome's startup `about:blank` target for the active page, because Chromium target discovery can expose stale CDP target sessions while Chrome is still settling after launch.
+Fresh Bowser sessions create and select a Bowser-owned blank page target before returning the first `PageEngine`. They do not reuse Chrome's startup `about:blank` target for the active page, because Chromium target discovery can expose stale CDP target sessions while Chrome is still settling after launch. Once the owned target exists, Bowser closes any unmanaged startup blank it observed before creation so later page inventory cannot adopt it as a second session page.
 
 Before a page is returned to callers, activation must validate the page target by sending a real CDP runtime evaluation. A cached URL or title read is not enough to prove that the target session can accept later navigation, capture, and interaction commands.
 If Chrome reports that the target session is missing during that validation, Bowser must reacquire a fresh page handle for the same target and retry before returning an error.

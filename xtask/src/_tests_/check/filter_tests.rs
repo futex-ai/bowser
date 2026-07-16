@@ -6,6 +6,10 @@ const HEADLESS_STEALTH_ENV: (&str, &str) = (
     "BOWSER_INTERNAL_STEALTH_FEATURES",
     "-launch-headed,-launch-native-window",
 );
+const BACKEND_FOCUS_ENV: (&str, &str) = (
+    "BOWSER_INTERNAL_STEALTH_FEATURES",
+    "+accessibility-capture,-launch-headed,-launch-native-window",
+);
 const HEADLESS_ENV: (&str, &str) = ("BOWSER_HEADLESS", "true");
 
 #[test]
@@ -53,7 +57,7 @@ fn include_bowser_runs_all_browser_and_smoke_commands() {
         Vec::new(),
     ));
 
-    assert_eq!(commands.len(), 6);
+    assert_eq!(commands.len(), 7);
     assert_eq!(
         commands[0].args,
         ["test", "--locked", "-p", "bowser", "--lib"]
@@ -67,13 +71,16 @@ fn include_bowser_runs_all_browser_and_smoke_commands() {
     assert!(commands[1].envs.contains(&HEADLESS_STEALTH_ENV));
     assert!(commands[2].args.contains(&"browser_flows"));
     assert!(commands[2].envs.contains(&HEADLESS_ENV));
-    assert!(commands[2].envs.contains(&HEADLESS_STEALTH_ENV));
+    assert!(commands[2].envs.contains(&BACKEND_FOCUS_ENV));
+    assert!(commands[3].args.contains(&"browser_flows"));
+    assert!(commands[3].envs.contains(&HEADLESS_ENV));
+    assert!(commands[3].envs.contains(&HEADLESS_STEALTH_ENV));
     assert_eq!(
-        commands[3].args,
+        commands[4].args,
         ["test", "--locked", "-p", "bowser-cli", "--bin", "bowser"]
     );
-    assert!(commands[4].args.contains(&"interactive_repl"));
-    assert_eq!(commands[5].args.last(), Some(&"--help"));
+    assert!(commands[5].args.contains(&"interactive_repl"));
+    assert_eq!(commands[6].args.last(), Some(&"--help"));
 }
 
 #[test]

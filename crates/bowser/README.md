@@ -84,7 +84,7 @@ cargo xtask check
 - `BrowserConfig` now supports explicit `headless` control and `persistent_profile` reuse, with `user_data_dir` remaining the highest-precedence profile override; every launch validates that viewport width and height are both positive after all config sources are merged
 - `Browser::launch_with_store` lets callers supply a custom `Arc<dyn SessionStore>` so session metadata can live outside the filesystem; `config.session.dir` still provides the default profile-root path for browser data when `user_data_dir` is not set
 - `cleanup_expired_sessions` accepts that trusted session root explicitly, while `SessionMetadata::owns_user_data_dir` keeps explicit and persistent profiles outside Bowser's deletion boundary
-- Fresh sessions create and select a Bowser-owned blank page target instead of reusing Chrome's startup target, and page activation validates the CDP target session before returning a live page
+- Fresh sessions create and select a Bowser-owned blank page target instead of reusing Chrome's startup target, close the unmanaged startup blank once the owned target exists, and validate the CDP target session before returning a live page
 - Detached session metadata now stores per-page records with stable Bowser page IDs such as `pg_1` plus a typed page record (`tab` today); legacy single-page metadata is migrated forward on load
 - The selected page ID is persisted in session metadata so resume, `page select`, `page new`, and `page close` all reattach to the expected page
 - Live page inventory bounds URL/title probes and falls back to stored metadata, so stale Chromium targets after page close do not stall page selection
@@ -95,6 +95,7 @@ cargo xtask check
 - `BOWSER_INTERNAL_STEALTH_FEATURES` is a developer-only experiment override used by the Google smoke matrix to toggle one stealth behavior at a time; it is not part of the CLI contract
 - Bowser does not expose proxy transport; use a VPN outside Bowser when browser traffic must leave through a different network route or IP address
 - Browser-native downloads use the active Chrome session so redirects, cookies, and `Content-Disposition` behavior are handled by the browser rather than by a separate HTTP client; Chrome navigation failures return immediately as `DownloadStart`, while `DownloadTimeout` is reserved for a started download that never completes
+- DOM capture replaces every non-empty password value with a fixed `[redacted]` marker before page models, metadata, YAML, or JSON are produced
 - Headed Linux sessions start Xvfb only when neither `DISPLAY` nor `WAYLAND_DISPLAY` is available, apply the configured viewport as Chrome's window size on that synthetic display, and validate the stored Xvfb display before terminating the helper PID during cleanup
 
 ### Key Code

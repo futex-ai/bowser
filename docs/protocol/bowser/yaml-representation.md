@@ -20,7 +20,7 @@ The following element types are captured:
 | `text` | `<p>`, `<span>`, `<label>`, text nodes, `<blockquote>`, `<pre>`, `<code>` | `text: "..."` |
 | `link` | `<a>` | `link#12: "..."`; when focused: `link#12: { text: "...", focused: true }`; fetch `href` with `meta 12` |
 | `button` | `<button>`, `<input type="submit">`, `[role="button"]` | `button#13: "..."`; when focused: `button#13: { text: "...", focused: true }` |
-| `input` | `<input>`, `<textarea>`, `<select>`, `[role="checkbox"]`, `[role="radio"]`, `[role="switch"]` | `input#14: { type: text, name: q, placeholder: Search, value: "" }`; add `focused: true` when active |
+| `input` | `<input>`, `<textarea>`, `<select>`, `[role="checkbox"]`, `[role="radio"]`, `[role="switch"]` | `input#14: { type: text, name: q, placeholder: Search, value: "" }`; non-empty password values render as the fixed `[redacted]` marker; add `focused: true` when active |
 | `image` | `<img>`, `<svg>` (meaningful), `<picture>`, `[role="img"]` | `image#15: "Alt text (filename.png)"`; when AI description is available: `image#15: { label: "Alt text (filename.png)", describable: true }`; when focused add `focused: true`; fetch `src` and full metadata with `meta 15`, and fetch the explicit description with `describe 15` |
 | `table` | `<table>` | `table#16: { headers: [...], rows: [{ cells: [...] }], truncated: ... }`; add `focused: true` when active |
 | `list` | `<ul>`, `<ol>`, `<dl>` | `ul#17: [...]`, `ol#17: [...]`, or `dl#17: [...]`; when truncated, use `items` plus `truncated`; add `focused: true` when active |

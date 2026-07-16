@@ -12,12 +12,42 @@ impl Browser {
         &self,
         state: &mut BrowserState,
     ) -> Result<(String, chromiumoxide::Page)> {
+        let unmanaged_blank_pages = self
+            .list_live_pages(state)
+            .await?
+            .into_iter()
+            .filter(|page| {
+                (page.url.is_empty() || page.url == "about:blank")
+                    && state.metadata.page_by_target_id(&page.target_id).is_none()
+            })
+            .collect::<Vec<_>>();
         let page = state
             .browser
             .new_page("about:blank")
             .await
             .map_err(|err| Error::cdp(format!("failed to create page: {err}")))?;
         let target_id = page.target_id().as_ref().to_string();
+        for unmanaged_page in unmanaged_blank_pages {
+            if let Err(error) = self
+                .close_live_page_target(
+                    state,
+                    unmanaged_page.page,
+                    "Chrome startup page",
+                    &unmanaged_page.target_id,
+                )
+                .await
+            {
+                let _ = self
+                    .close_live_page_target(
+                        state,
+                        page.clone(),
+                        "unfinished Bowser page",
+                        &target_id,
+                    )
+                    .await;
+                return Err(error);
+            }
+        }
         let page_id = {
             let page_state = state.metadata.ensure_page_for_target(&target_id);
             page_state.update_live_state("about:blank".to_string(), String::new());

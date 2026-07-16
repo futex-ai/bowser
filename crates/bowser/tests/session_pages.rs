@@ -4,6 +4,34 @@ use bowser::{Browser, BrowserEngine};
 use tempfile::tempdir;
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn fresh_sessions_do_not_enumerate_the_chrome_startup_blank_page() {
+    let _guard = support::browser_test_guard();
+    let server = support::spawn_server().await;
+    let session_dir = tempdir().expect("session dir");
+    let config = support::test_config(session_dir.path());
+
+    let browser = Browser::launch(config).await.expect("launch browser");
+    let page = browser.current_page().await.expect("page");
+    page.navigate(&server.url("/simple"))
+        .await
+        .expect("navigate simple");
+    page.capture().await.expect("capture simple");
+
+    let pages = browser.list_pages().await.expect("page list");
+    let live_pages = pages.iter().filter(|page| page.live).collect::<Vec<_>>();
+
+    assert_eq!(live_pages.len(), 1);
+    assert!(
+        live_pages[0]
+            .url
+            .as_deref()
+            .is_some_and(|url| url.ends_with("/simple"))
+    );
+
+    browser.close().await.expect("close browser");
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn sessions_can_list_switch_create_and_close_pages() {
     let _guard = support::browser_test_guard();
     let server = support::spawn_server().await;

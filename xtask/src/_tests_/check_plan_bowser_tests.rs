@@ -12,6 +12,7 @@ use crate::check::CheckCommand;
 const BOWSER_TEST_PACKAGES: &[&str] = &["bowser", "bowser-cli"];
 const BOWSER_HEADLESS_ENV: (&str, &str) = ("BOWSER_HEADLESS", "true");
 const BOWSER_STEALTH_FEATURES_ENV: &str = "BOWSER_INTERNAL_STEALTH_FEATURES";
+const BACKEND_FOCUS_TEST_NAME: &str = "stealth_typing_replaces_prefilled_same_page_text";
 
 #[derive(Deserialize)]
 struct CargoMetadata {
@@ -75,6 +76,20 @@ fn bowser_doctests_force_headless_mode() {
             .iter()
             .any(|(name, _)| *name == BOWSER_STEALTH_FEATURES_ENV)
     );
+}
+
+#[test]
+fn backend_focus_regression_enables_accessibility_capture() {
+    let command = BOWSER_COMMANDS
+        .iter()
+        .find(|command| command.args.contains(&BACKEND_FOCUS_TEST_NAME))
+        .expect("backend-focus regression command");
+
+    assert!(command.envs.contains(&BOWSER_HEADLESS_ENV));
+    assert!(command.envs.contains(&(
+        BOWSER_STEALTH_FEATURES_ENV,
+        "+accessibility-capture,-launch-headed,-launch-native-window",
+    )));
 }
 
 fn workspace_root() -> PathBuf {

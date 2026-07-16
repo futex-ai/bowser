@@ -15,6 +15,7 @@
         <p>Hello world</p>
         <form action="/search">
           <input type="text" name="q" placeholder="Search">
+          <input type="password" name="account_password" value="do-not-expose-this-password">
           <input type="hidden" name="csrf_token" value="secret">
           <button type="submit">Search</button>
         </form>

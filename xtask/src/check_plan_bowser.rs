@@ -17,6 +17,16 @@ const BOWSER_BROWSER_TEST_ENV: &[(&str, &str)] = &[
         "-launch-headed,-launch-native-window",
     ),
 ];
+const BOWSER_BACKEND_FOCUS_TEST_ENV: &[(&str, &str)] = &[
+    ("CARGO_INCREMENTAL", "0"),
+    ("CARGO_PROFILE_DEV_DEBUG", "0"),
+    ("CARGO_PROFILE_TEST_DEBUG", "0"),
+    ("BOWSER_HEADLESS", "true"),
+    (
+        "BOWSER_INTERNAL_STEALTH_FEATURES",
+        "+accessibility-capture,-launch-headed,-launch-native-window",
+    ),
+];
 
 /// Commands for Bowser's pure tests, browser integration tests, and CLI smoke.
 pub(crate) const BOWSER_COMMANDS: &[CheckCommand] = &[
@@ -29,6 +39,21 @@ pub(crate) const BOWSER_COMMANDS: &[CheckCommand] = &[
         "cargo",
         &["test", "--locked", "-p", "bowser", "--doc"],
         BOWSER_BROWSER_TEST_ENV,
+    ),
+    CheckCommand::root(
+        "cargo",
+        &[
+            "test",
+            "--locked",
+            "-p",
+            "bowser",
+            "--test",
+            "browser_flows",
+            "stealth_typing_replaces_prefilled_same_page_text",
+            "--",
+            "--test-threads=1",
+        ],
+        BOWSER_BACKEND_FOCUS_TEST_ENV,
     ),
     CheckCommand::root(
         "cargo",

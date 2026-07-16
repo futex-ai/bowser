@@ -89,6 +89,7 @@ impl LivePage {
         if StealthFeatures::from_config(&self.config).backend_focus_input()
             && self.backend_focus(element_id).await?
         {
+            self.select_all_text().await?;
             for (index, key) in characters.iter().enumerate() {
                 self.press_resolved_keys(std::slice::from_ref(key)).await?;
                 if index + 1 < characters.len() {
