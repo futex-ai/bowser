@@ -6,9 +6,12 @@ use std::sync::{Arc, Mutex};
 
 use unimock::{MockFn, Unimock, matching};
 
+use crate::error::Error;
+
 use super::cleanup::{
     chrome_cmdline_matches, terminate_session_processes_and_wait_with,
-    terminate_session_processes_with, xvfb_pid_to_terminate_with,
+    terminate_session_processes_with, validate_session_process_identity_with,
+    xvfb_pid_to_terminate_with,
 };
 use super::metadata::SessionMetadata;
 use super::process::{LaunchedProcessGuard, ProcessControl, ProcessControlMock};
@@ -86,6 +89,41 @@ fn chrome_identity_accepts_quoted_arguments_from_process_listing() {
     ];
 
     assert!(chrome_cmdline_matches(&combined, &session));
+}
+
+#[test]
+fn session_resume_rejects_a_reused_process_identity() {
+    let session = metadata(3333);
+    let control = Unimock::new(
+        ProcessControlMock::command_line
+            .next_call(matching!(3333))
+            .returns(Some(vec!["/usr/bin/sleep".to_string(), "100".to_string()])),
+    );
+
+    let error = validate_session_process_identity_with(&control, &session)
+        .expect_err("reused process must not be resumed");
+
+    assert!(matches!(
+        error,
+        Error::SessionProcessIdentityMismatch { session_id } if session_id == session.id
+    ));
+}
+
+#[test]
+fn session_resume_accepts_the_persisted_process_identity() {
+    let session = metadata(3333);
+    let control = Unimock::new(
+        ProcessControlMock::command_line
+            .next_call(matching!(3333))
+            .returns(Some(vec![
+                "/usr/bin/google-chrome".to_string(),
+                "--remote-debugging-port=9222".to_string(),
+                "--user-data-dir=/tmp/bowser-profile".to_string(),
+            ])),
+    );
+
+    validate_session_process_identity_with(&control, &session)
+        .expect("matching process can be resumed");
 }
 
 #[tokio::test]

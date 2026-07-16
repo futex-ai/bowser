@@ -302,6 +302,6 @@ pub struct ImageDescription {
 }
 ```
 
-`Browser::launch(config)` creates a new detached session when `config.session.id` is `None`, and resumes an existing detached session when `config.session.id` is set, using Bowser's default file-backed `SessionStore`.
+`Browser::launch(config)` creates a new detached session when `config.session.id` is `None`, and resumes an existing detached session when `config.session.id` is set, using Bowser's default file-backed `SessionStore`. Resume validates that the stored PID still owns Chrome with the persisted debug port and profile before connecting.
 
 `Browser::launch_with_store(config, store)` performs the same launch/resume flow with a caller-provided `Arc<dyn SessionStore>`. This allows detached-session metadata to live in a database or other persistence layer instead of the filesystem. Even when a custom store is used, `config.session.dir` still determines the default Chrome profile-root path when `user_data_dir` is not set.

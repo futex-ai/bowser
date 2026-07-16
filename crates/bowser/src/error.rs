@@ -78,6 +78,13 @@ pub enum Error {
         pid: u32,
     },
 
+    /// The persisted process no longer has the Chrome port and profile identity for the session.
+    #[error("[bowser/session] session process identity no longer matches: {session_id}")]
+    SessionProcessIdentityMismatch {
+        /// Session that cannot be resumed safely.
+        session_id: String,
+    },
+
     #[error("[bowser/session] page not found: {page_id}")]
     SessionPageNotFound { page_id: String },
 

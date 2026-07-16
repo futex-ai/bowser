@@ -11,6 +11,20 @@ pub(crate) fn is_sensitive_tracked_relative_path(relative_path: &str) -> bool {
             _ => None,
         })
         .collect::<Vec<_>>();
+    if let Some(file_name) = components.last()
+        && is_explicit_sensitive_component(file_name)
+    {
+        return true;
+    }
+    if components
+        .last()
+        .is_some_and(|file_name| is_reviewable_tracked_file_name(file_name))
+    {
+        return components
+            .iter()
+            .take(components.len().saturating_sub(1))
+            .any(|component| is_always_sensitive_directory(component));
+    }
     components.iter().enumerate().any(|(index, component)| {
         is_explicit_sensitive_component(component)
             || (is_broad_sensitive_component(component)
@@ -90,6 +104,72 @@ fn is_broad_sensitive_component(component: &str) -> bool {
         || file_name.contains("password")
         || file_name.contains("credential")
         || file_name.contains("token")
+}
+
+fn is_always_sensitive_directory(component: &str) -> bool {
+    matches!(
+        component.to_ascii_lowercase().as_str(),
+        ".env"
+            | ".envrc"
+            | ".npmrc"
+            | ".pypirc"
+            | ".netrc"
+            | ".ssh"
+            | ".aws"
+            | ".azure"
+            | ".gcloud"
+            | ".kube"
+    )
+}
+
+fn is_reviewable_tracked_file_name(file_name: &str) -> bool {
+    let Some(extension) = Path::new(file_name)
+        .extension()
+        .and_then(|value| value.to_str())
+    else {
+        return false;
+    };
+    matches!(
+        extension.to_ascii_lowercase().as_str(),
+        "bash"
+            | "c"
+            | "cc"
+            | "cpp"
+            | "cs"
+            | "css"
+            | "fish"
+            | "fs"
+            | "fsx"
+            | "go"
+            | "gql"
+            | "graphql"
+            | "h"
+            | "hpp"
+            | "html"
+            | "java"
+            | "js"
+            | "jsx"
+            | "kt"
+            | "kts"
+            | "md"
+            | "mdx"
+            | "mjs"
+            | "mm"
+            | "proto"
+            | "py"
+            | "rb"
+            | "rs"
+            | "scala"
+            | "scss"
+            | "sh"
+            | "sql"
+            | "svelte"
+            | "swift"
+            | "ts"
+            | "tsx"
+            | "vue"
+            | "zsh"
+    )
 }
 
 fn is_sensitive_data_file_name(file_name: &str) -> bool {

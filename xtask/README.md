@@ -27,10 +27,11 @@ those overrides so they continue to assert production defaults.
 `origin/main`, staged and unstaged changes, and guarded untracked text diffs.
 It runs an ephemeral Codex process from a neutral temporary directory with a
 read-only sandbox and a scrubbed environment. Sensitive paths are reported but
-not opened or included in diff bodies. Tracked and untracked config/data paths
-with secret, password, credential, or token components use the same
-conservative omission boundary; ordinary Rust source filenames remain
-reviewable.
+not opened or included in diff bodies. Untracked paths use a conservative
+component-name boundary. Tracked config/data artifacts with secret, password,
+credential, or token components are also omitted, while recognized source and
+documentation files remain reviewable even beneath broadly named directories
+such as `token/`; explicit secret directories such as `.aws/` remain omitted.
 
 ## Quick Start
 
@@ -60,6 +61,8 @@ cargo xtask rust-file-length-lint --all
 Source and test-layout walkers skip symlinks instead of traversing outside the
 repository. The trait audit parses Rust syntax, so generic and multiline trait
 implementations in source-adjacent tests cannot bypass the Unimock rule.
+The file-length audit consumes NUL-delimited Git output, preserving quoted,
+spaced, and newline-containing Rust paths in both full and changed-file modes.
 
 The full check expects Rust with `rustfmt` and `clippy`, Python 3, `actionlint`,
 ShellCheck, and a local Chrome or Chromium executable. Browser integration tests

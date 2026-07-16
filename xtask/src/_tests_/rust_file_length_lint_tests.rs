@@ -20,8 +20,8 @@ fn collects_only_changed_rust_files() {
 
     let files = collect_candidate_rust_files(
         workspace.path(),
-        "crates/demo/src/lib.rs\nREADME.md\n",
-        " M xtask/src/main.rs\n?? crates/demo/src/notes.txt\n",
+        b"crates/demo/src/lib.rs\0README.md\0",
+        b" M xtask/src/main.rs\0?? crates/demo/src/notes.txt\0",
     );
 
     assert_eq!(
@@ -31,6 +31,24 @@ fn collects_only_changed_rust_files() {
             workspace.path().join("xtask/src/main.rs"),
         ]
     );
+}
+
+#[cfg(unix)]
+#[test]
+fn changed_file_parsing_preserves_newlines_and_renames() {
+    let workspace = temp_workspace();
+    let newline_path = workspace.path().join("crates/demo/src/line\nbreak.rs");
+    let renamed_path = workspace.path().join("xtask/src/renamed.rs");
+    write_rust_file(&newline_path, 1);
+    write_rust_file(&renamed_path, 1);
+
+    let files = collect_candidate_rust_files(
+        workspace.path(),
+        b"crates/demo/src/line\nbreak.rs\0",
+        b"R  xtask/src/renamed.rs\0xtask/src/old.rs\0",
+    );
+
+    assert_eq!(files, vec![newline_path, renamed_path]);
 }
 
 #[test]
@@ -46,6 +64,25 @@ fn all_mode_audits_tracked_rust_files() {
     assert!(matches!(
         error,
         Error::RustFileLengthViolations { count: 2, .. }
+    ));
+}
+
+#[cfg(unix)]
+#[test]
+fn all_mode_audits_tracked_rust_filename_with_newline() {
+    let workspace = temp_workspace();
+    write_rust_file(
+        &workspace.path().join("crates/demo/src/line\nbreak.rs"),
+        301,
+    );
+    init_git_repo(workspace.path());
+
+    let error =
+        run_rust_file_length_lint(workspace.path(), RustFileLengthLintMode::AllFiles).unwrap_err();
+
+    assert!(matches!(
+        error,
+        Error::RustFileLengthViolations { count: 1, .. }
     ));
 }
 

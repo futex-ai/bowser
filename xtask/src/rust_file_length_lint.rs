@@ -4,12 +4,18 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+#[cfg(unix)]
+use std::ffi::OsString;
+#[cfg(unix)]
+use std::os::unix::ffi::OsStringExt;
+
 use crate::error::{Error, Result};
 
 const MAX_LINES: usize = 300;
 const BRANCH_DIFF_ARGS: &[&str] = &[
     "diff",
     "--name-only",
+    "-z",
     "origin/main...HEAD",
     "--",
     "crates",
@@ -17,7 +23,8 @@ const BRANCH_DIFF_ARGS: &[&str] = &[
 ];
 const WORKTREE_STATUS_ARGS: &[&str] = &[
     "status",
-    "--porcelain",
+    "--porcelain=v1",
+    "-z",
     "--untracked-files=all",
     "--",
     "crates",
@@ -25,6 +32,7 @@ const WORKTREE_STATUS_ARGS: &[&str] = &[
 ];
 const ALL_FILES_ARGS: &[&str] = &[
     "ls-files",
+    "-z",
     "--cached",
     "--others",
     "--exclude-standard",
@@ -65,8 +73,8 @@ pub(crate) fn run_rust_file_length_lint(
 fn rust_file_paths(workspace_root: &Path, mode: RustFileLengthLintMode) -> Result<Vec<PathBuf>> {
     match mode {
         RustFileLengthLintMode::ChangedFiles => {
-            let branch_diff = git_stdout(workspace_root, BRANCH_DIFF_ARGS)?;
-            let worktree_status = git_stdout(workspace_root, WORKTREE_STATUS_ARGS)?;
+            let branch_diff = git_stdout_bytes(workspace_root, BRANCH_DIFF_ARGS)?;
+            let worktree_status = git_stdout_bytes(workspace_root, WORKTREE_STATUS_ARGS)?;
             Ok(collect_candidate_rust_files(
                 workspace_root,
                 &branch_diff,
@@ -74,56 +82,97 @@ fn rust_file_paths(workspace_root: &Path, mode: RustFileLengthLintMode) -> Resul
             ))
         }
         RustFileLengthLintMode::AllFiles => {
-            let all_files = git_stdout(workspace_root, ALL_FILES_ARGS)?;
-            Ok(collect_candidate_rust_files(workspace_root, &all_files, ""))
+            let all_files = git_stdout_bytes(workspace_root, ALL_FILES_ARGS)?;
+            Ok(collect_candidate_rust_files(
+                workspace_root,
+                &all_files,
+                &[],
+            ))
         }
     }
 }
 
 fn collect_candidate_rust_files(
     workspace_root: &Path,
-    branch_diff: &str,
-    worktree_status: &str,
+    branch_diff: &[u8],
+    worktree_status: &[u8],
 ) -> Vec<PathBuf> {
     let mut files = BTreeSet::new();
 
-    add_relative_rust_files(workspace_root, branch_diff.lines(), &mut files);
-    add_relative_rust_files(
-        workspace_root,
-        worktree_status.lines().filter_map(parse_status_path),
-        &mut files,
-    );
+    add_nul_relative_rust_files(workspace_root, branch_diff, &mut files);
+    add_status_relative_rust_files(workspace_root, worktree_status, &mut files);
 
     files.into_iter().collect()
 }
 
-fn add_relative_rust_files<'a>(
+fn add_nul_relative_rust_files(
     workspace_root: &Path,
-    candidates: impl Iterator<Item = &'a str>,
+    output: &[u8],
     files: &mut BTreeSet<PathBuf>,
 ) {
-    for relative in candidates {
-        let path = workspace_root.join(relative);
-        if path.is_file() && path.extension().and_then(|value| value.to_str()) == Some("rs") {
-            files.insert(path);
+    for relative in output
+        .split(|byte| *byte == 0)
+        .filter(|path| !path.is_empty())
+    {
+        add_relative_rust_file(workspace_root, relative, files);
+    }
+}
+
+fn add_status_relative_rust_files(
+    workspace_root: &Path,
+    output: &[u8],
+    files: &mut BTreeSet<PathBuf>,
+) {
+    let mut records = output
+        .split(|byte| *byte == 0)
+        .filter(|path| !path.is_empty());
+    while let Some(record) = records.next() {
+        let Some(path) = record.get(3..) else {
+            continue;
+        };
+        let rename_or_copy = record
+            .get(..2)
+            .is_some_and(|status| status.iter().any(|byte| matches!(*byte, b'R' | b'C')));
+        add_relative_rust_file(workspace_root, path, files);
+        if rename_or_copy {
+            let _ = records.next();
         }
     }
 }
 
-fn parse_status_path(line: &str) -> Option<&str> {
-    let path = line.get(3..)?.trim();
-    Some(path.rsplit(" -> ").next().unwrap_or(path))
+fn add_relative_rust_file(workspace_root: &Path, relative: &[u8], files: &mut BTreeSet<PathBuf>) {
+    let path = workspace_root.join(path_from_git_bytes(relative));
+    if crate::filesystem::is_regular_file_without_symlink(&path)
+        && path.extension() == Some(std::ffi::OsStr::new("rs"))
+    {
+        files.insert(path);
+    }
 }
 
-fn git_stdout(workspace_root: &Path, args: &[&str]) -> Result<String> {
-    let output = Command::new("git")
+#[cfg(unix)]
+fn path_from_git_bytes(path: &[u8]) -> PathBuf {
+    PathBuf::from(OsString::from_vec(path.to_vec()))
+}
+
+#[cfg(not(unix))]
+fn path_from_git_bytes(path: &[u8]) -> PathBuf {
+    PathBuf::from(String::from_utf8_lossy(path).into_owned())
+}
+
+fn git_stdout_bytes(workspace_root: &Path, args: &[&str]) -> Result<Vec<u8>> {
+    let output = match Command::new("git")
         .args(args)
         .current_dir(workspace_root)
         .output()
-        .map_err(|source| Error::RustFileLengthGitCommandStart {
-            command: format!("git {}", args.join(" ")),
-            source,
-        })?;
+    {
+        Ok(output) => output,
+        Err(source) => {
+            return Err(Error::RustFileLengthGitCommandStart {
+                command: format!("git {}", args.join(" ")),
+                source,
+            });
+        }
+    };
 
     if !output.status.success() {
         return Err(Error::RustFileLengthGitCommandFailed {
@@ -133,7 +182,7 @@ fn git_stdout(workspace_root: &Path, args: &[&str]) -> Result<String> {
         });
     }
 
-    Ok(String::from_utf8_lossy(&output.stdout).into_owned())
+    Ok(output.stdout)
 }
 
 fn verify_rust_file_length(workspace_root: &Path, path: &Path) -> Result<()> {

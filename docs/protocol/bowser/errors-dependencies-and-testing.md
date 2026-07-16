@@ -56,6 +56,9 @@ pub enum Error {
     #[error("[bowser/session] Chrome process {pid} remained active after forced termination")]
     SessionProcessStillRunning { pid: u32 },
 
+    #[error("[bowser/session] session process identity no longer matches: {session_id}")]
+    SessionProcessIdentityMismatch { session_id: String },
+
     #[error("[bowser/session] page not found: {page_id}")]
     SessionPageNotFound { page_id: String },
 
@@ -253,7 +256,7 @@ typed command-layer failures for output, REPL, and pointer-log handling.
 - **Capture/flattening logic**: test the DOM-to-element-tree transformation with mock DOM JSON inputs. Verify flattening rules, root visible/obscured splitting, wrapper promotion, and text merging.
 - **YAML/JSON serialization**: snapshot tests for compact YAML output and full-fidelity round-trip tests for JSON.
 - **Config parsing**: test precedence rules, defaults, and invalid config handling.
-- **Session lifecycle**: test session ID generation, path confinement, filename/document identity, metadata persistence, TTL expiry, resume behaviour, fresh-launch rollback, stale-PID-safe cleanup through mocked process control, and owned-profile cleanup through mocked directory control.
+- **Session lifecycle**: test session ID generation, path confinement, filename/document identity, metadata persistence, TTL expiry, resume identity validation, fresh-launch rollback, stale-PID-safe cleanup through mocked process control, and owned-profile cleanup through mocked directory control.
 - **Session page management**: test stable page-ID assignment, selected-page persistence, legacy single-page metadata migration, and page-summary generation.
 - **Truncation logic**: test preview limits for lists, tables, and container children, plus emitted `truncation` metadata.
 - **Stealth patch generation**: verify the JS patches are syntactically valid.

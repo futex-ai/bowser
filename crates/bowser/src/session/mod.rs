@@ -16,6 +16,7 @@ pub use metadata::{SessionMetadata, SessionPageMetadata};
 pub use profile::remove_owned_session_profile;
 pub use store::{FileSessionStore, SessionStore, default_session_dir};
 
+pub(crate) use cleanup::validate_session_process_identity;
 pub(crate) use process::LaunchedProcessGuard;
 pub(crate) use profile::OwnedProfileGuard;
 

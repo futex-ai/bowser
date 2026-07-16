@@ -29,6 +29,22 @@ pub fn terminate_session_processes(session: &SessionMetadata) {
     terminate_session_processes_with(&SystemProcessControl, session);
 }
 
+pub(crate) fn validate_session_process_identity(session: &SessionMetadata) -> Result<()> {
+    validate_session_process_identity_with(&SystemProcessControl, session)
+}
+
+pub(crate) fn validate_session_process_identity_with(
+    control: &dyn ProcessControl,
+    session: &SessionMetadata,
+) -> Result<()> {
+    if chrome_process_is_running(control, session) {
+        return Ok(());
+    }
+    Err(crate::error::Error::SessionProcessIdentityMismatch {
+        session_id: session.id.clone(),
+    })
+}
+
 /// Terminates a detached session and waits until its Chrome identity disappears.
 pub async fn terminate_session_processes_and_wait(session: &SessionMetadata) -> Result<()> {
     terminate_session_processes_and_wait_with(

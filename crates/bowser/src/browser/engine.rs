@@ -13,6 +13,7 @@ use crate::{
     session::{
         FileSessionStore, OwnedProfileGuard, SessionStore, cleanup_expired_sessions,
         default_session_dir, remove_owned_session_profile, terminate_session_processes_and_wait,
+        validate_session_process_identity,
     },
 };
 
@@ -83,6 +84,7 @@ impl Browser {
             if let Some(session_id) = config.session.id.clone() {
                 let metadata = store.load(&session_id).await?;
                 validate_session_age(&metadata, config.session.idle_ttl)?;
+                validate_session_process_identity(&metadata)?;
                 let (browser, handler_task) = connect_browser(&metadata.http_url).await?;
                 (
                     SessionInfo {

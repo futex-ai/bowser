@@ -31,7 +31,8 @@ Session behaviour:
 2. `bowser interactive` creates or resumes a session, runs the REPL, then detaches on `quit` / `exit`.
 3. Once a single-shot command has created or resumed a session, Bowser detaches and prints the active session ID to `stderr` as `Session: <ID>` even if later navigation, capture, screenshot, rendering, or output fails. The original command error remains the command result, while the session ID keeps the intentionally running browser discoverable and resumable.
 4. Detached sessions remain resumable until they are explicitly closed or their idle TTL expires.
-5. Resuming a session with a new command continues from the current browser state before applying any new navigation or interaction requested by that command.
+5. Before resuming, Bowser confirms that the stored PID still exposes the session's exact remote-debugging port and user-data directory. A missing or reused process identity fails closed instead of connecting to whatever now owns the stored port.
+6. Resuming a valid session with a new command continues from the current browser state before applying any new navigation or interaction requested by that command.
 
 ## Session Pages
 
@@ -64,6 +65,6 @@ Live page reconciliation must bound Chrome URL/title metadata probes and fall ba
 
 Legacy single-page session metadata should migrate forward to the multi-page metadata shape on first load or list. Loading and listing must use the same migration path so one legacy entry cannot prevent session cleanup or enumeration.
 
-Session close and expiry cleanup treat persisted PIDs as untrusted, reusable operating-system identifiers. Bowser may terminate the stored Chrome PID only when the live command line still contains both the stored remote-debugging port and user-data directory. A matching Chrome process gets a bounded graceful-exit wait and then a force-termination fallback; owned-profile deletion starts only after that process identity disappears. Bowser may terminate an Xvfb PID only when its executable and display still match the stored session. A newly launched Chrome/Xvfb pair is guarded separately as known-owned: any connection or metadata-persistence failure terminates both before the launch returns an error.
+Resume, close, and expiry cleanup treat persisted PIDs as untrusted, reusable operating-system identifiers. Resume may connect to the stored debug endpoint only when the live command line still contains both the stored remote-debugging port and user-data directory. Close and expiry use the same identity boundary before termination. A matching Chrome process gets a bounded graceful-exit wait and then a force-termination fallback; owned-profile deletion starts only after that process identity disappears. Bowser may terminate an Xvfb PID only when its executable and display still match the stored session. A newly launched Chrome/Xvfb pair is guarded separately as known-owned: any connection or metadata-persistence failure terminates both before the launch returns an error.
 
 Fresh non-persistent sessions also record that their UUID profile directory is Bowser-owned. Failed launch finalization, explicit close, and idle expiry remove that directory only when it is a direct UUID-shaped child of the trusted `<session-root>/profiles` directory. Explicit `user_data_dir` values, the stable persistent profile, legacy metadata without the ownership field, and invalid owned paths must never be recursively deleted.
