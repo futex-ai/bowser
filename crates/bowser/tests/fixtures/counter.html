@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Counter Fixture</title>
+    <script>
+      window.__bowserTypingStats = {
+        keydownCount: 0,
+        trustedKeydownCount: 0,
+        inputCount: 0,
+        trustedInputCount: 0,
+        keyupCount: 0,
+        trustedKeyupCount: 0,
+        changeCount: 0,
+        trustedChangeCount: 0,
+        inputTimes: []
+      };
+      window.addEventListener('DOMContentLoaded', () => {
+        const input = document.querySelector('input[name="message"]');
+        const stats = window.__bowserTypingStats;
+        input.addEventListener('keydown', (event) => {
+          stats.keydownCount += 1;
+          if (event.isTrusted) stats.trustedKeydownCount += 1;
+        });
+        input.addEventListener('input', (event) => {
+          stats.inputCount += 1;
+          if (event.isTrusted) stats.trustedInputCount += 1;
+          stats.inputTimes.push(performance.now());
+        });
+        input.addEventListener('keyup', (event) => {
+          stats.keyupCount += 1;
+          if (event.isTrusted) stats.trustedKeyupCount += 1;
+        });
+        input.addEventListener('change', (event) => {
+          stats.changeCount += 1;
+          if (event.isTrusted) stats.trustedChangeCount += 1;
+        });
+      });
+    </script>
+  </head>
+  <body>
+    <main>
+      <button id="increment" onclick="
+        const count = document.getElementById('count');
+        const next = Number(count.dataset.value || '0') + 1;
+        count.dataset.value = String(next);
+        count.textContent = `Count: ${next}`;
+      ">Increment</button>
+      <p id="count" data-value="0">Count: 0</p>
+      <input type="text" name="message" placeholder="Message">
+      <select name="choice">
+        <option value="">Pick one</option>
+        <option value="one">One</option>
+        <option value="two">Two</option>
+      </select>
+    </main>
+  </body>
+</html>

@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Bowser Pointer Log</title>
+    <link rel="stylesheet" href="/pointer-log.css">
+  </head>
+  <body>
+    <header>
+      <h1>Bowser Pointer Log</h1>
+      <div class="stats" role="status" aria-live="polite">
+        <span class="stat">Events <strong id="event-count">0</strong></span>
+        <span class="stat">Targets <strong id="target-count">0</strong></span>
+        <span class="stat">Pointer <strong id="pointer-position">0, 0</strong></span>
+        <span class="stat status" id="sync-state">idle</span>
+      </div>
+    </header>
+
+    <main id="stage" aria-label="Pointer target surface"></main>
+
+    <script src="/pointer-log.js"></script>
+  </body>
+</html>

@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Aria Hidden Visible Fixture</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: sans-serif;
+      }
+
+      .shell {
+        min-height: 100vh;
+        padding: 24px;
+      }
+
+      nav,
+      main,
+      form {
+        display: block;
+        margin-bottom: 16px;
+      }
+
+      .logo-link {
+        display: inline-block;
+        width: 32px;
+        height: 32px;
+        background: #eee;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell" aria-hidden="true">
+      <nav>
+        <a href="/next">About</a>
+        <a href="/help">Store</a>
+        <a class="logo-link" href="/item/999">
+          <style>
+            .junk {
+              color: red;
+            }
+          </style>
+        </a>
+      </nav>
+      <main>
+        <article>
+          <h1>Visible content survives aria-hidden wrappers</h1>
+          <p>Rendered content should still be captured.</p>
+          <form action="/search">
+            <input type="text" name="q" placeholder="Search">
+            <button type="submit">Search</button>
+          </form>
+        </article>
+      </main>
+    </div>
+  </body>
+</html>

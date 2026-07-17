@@ -1,0 +1,9 @@
+/target/
+/.context/
+/.bowser/
+/.claude/
+/.env
+/.env.local
+/.DS_Store
+/browser-log
+/screenshot-*.png

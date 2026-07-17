@@ -1,0 +1,63 @@
+name: Main
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bowser-main-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  ACTIONLINT_LINUX_AMD64_SHA256: 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8
+  ACTIONLINT_VERSION: v1.7.12
+  CARGO_INCREMENTAL: "0"
+  CARGO_PROFILE_DEV_DEBUG: "0"
+  CARGO_PROFILE_TEST_DEBUG: "0"
+  RUST_TOOLCHAIN: 1.89.0
+
+jobs:
+  verify:
+    name: Verify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev shellcheck xvfb
+          command -v google-chrome || command -v chromium || command -v chromium-browser
+
+      - name: Install Rust toolchain
+        run: |
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal --component rustfmt --component clippy
+          rustup default "$RUST_TOOLCHAIN"
+
+      - name: Install actionlint
+        run: |
+          version="${ACTIONLINT_VERSION#v}"
+          asset="actionlint_${version}_linux_amd64.tar.gz"
+          install_root="$RUNNER_TEMP/actionlint"
+          curl --fail --silent --show-error --location --retry 5 --retry-delay 2 --retry-max-time 120 --retry-all-errors "https://github.com/rhysd/actionlint/releases/download/$ACTIONLINT_VERSION/$asset" --output "$RUNNER_TEMP/$asset"
+          echo "$ACTIONLINT_LINUX_AMD64_SHA256  $RUNNER_TEMP/$asset" | sha256sum --check
+          mkdir -p "$install_root"
+          tar -xzf "$RUNNER_TEMP/$asset" -C "$install_root" actionlint
+          echo "$install_root" >> "$GITHUB_PATH"
+
+      - name: Run repository checks
+        run: cargo xtask check
+
+      - name: Build release CLI
+        run: cargo build --locked --release --package bowser-cli --bin bowser
+
+      - name: Smoke test release CLI
+        run: target/release/bowser --help

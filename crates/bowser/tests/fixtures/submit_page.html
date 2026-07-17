@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Submit Fixture</title>
+    <script>
+      window.__bowserSubmitStats = { submitCount: 0, trustedSubmitCount: 0, lastValue: '' };
+      window.addEventListener('DOMContentLoaded', () => {
+        const form = document.getElementById('search-form');
+        const status = document.getElementById('status');
+        form.addEventListener('submit', (event) => {
+          event.preventDefault();
+          window.__bowserSubmitStats.submitCount += 1;
+          if (event.isTrusted) window.__bowserSubmitStats.trustedSubmitCount += 1;
+          window.__bowserSubmitStats.lastValue = form.query.value;
+          status.textContent = `Submitted: ${form.query.value}`;
+        });
+      });
+    </script>
+  </head>
+  <body>
+    <main>
+      <form id="search-form" action="/search">
+        <input type="text" name="query" placeholder="Query">
+        <button type="submit">Search</button>
+      </form>
+      <p id="status">Waiting</p>
+    </main>
+  </body>
+</html>

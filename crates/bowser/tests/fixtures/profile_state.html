@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Profile State Fixture</title>
+    <script>
+      window.addEventListener('DOMContentLoaded', () => {
+        const previous = localStorage.getItem('bowser-profile-count') || '0';
+        const next = String(Number(previous) + 1);
+        localStorage.setItem('bowser-profile-count', next);
+        document.getElementById('count').textContent = next;
+      });
+    </script>
+  </head>
+  <body>
+    <main>
+      <p id="count">0</p>
+    </main>
+  </body>
+</html>

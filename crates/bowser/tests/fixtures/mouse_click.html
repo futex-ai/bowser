@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Pointer Click Fixture</title>
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: sans-serif;
+      }
+
+      main {
+        position: relative;
+        width: 100%;
+        min-height: 100vh;
+      }
+
+      button {
+        position: absolute;
+        padding: 16px 24px;
+        font-size: 16px;
+      }
+
+      #alpha {
+        left: 96px;
+        top: 120px;
+      }
+
+      #beta {
+        right: 120px;
+        bottom: 140px;
+      }
+
+      #status {
+        position: absolute;
+        left: 96px;
+        top: 240px;
+      }
+    </style>
+    <script>
+      window.__bowserPointerLog = [];
+
+      function geometryFor(el) {
+        const rect = el.getBoundingClientRect();
+        return {
+          left: rect.left,
+          right: rect.right,
+          top: rect.top,
+          bottom: rect.bottom,
+          center: {
+            x: rect.left + rect.width / 2,
+            y: rect.top + rect.height / 2
+          }
+        };
+      }
+
+      window.addEventListener('DOMContentLoaded', () => {
+        const alpha = document.getElementById('alpha');
+        const beta = document.getElementById('beta');
+        const status = document.getElementById('status');
+
+        window.__bowserButtonGeometry = {
+          alpha: geometryFor(alpha),
+          beta: geometryFor(beta)
+        };
+
+        const record = (event) => {
+          window.__bowserPointerLog.push({
+            type: event.type,
+            x: event.clientX,
+            y: event.clientY,
+            target: event.target.id || event.target.tagName.toLowerCase()
+          });
+        };
+
+        document.addEventListener('mousemove', record, true);
+        document.addEventListener('mousedown', record, true);
+        document.addEventListener('mouseup', record, true);
+        document.addEventListener('click', record, true);
+
+        alpha.addEventListener('click', () => {
+          status.textContent = 'Alpha clicked';
+        });
+        beta.addEventListener('click', () => {
+          status.textContent = 'Beta clicked';
+        });
+      });
+    </script>
+  </head>
+  <body>
+    <main>
+      <button id="alpha">Alpha</button>
+      <button id="beta">Beta</button>
+      <p id="status">Idle</p>
+    </main>
+  </body>
+</html>

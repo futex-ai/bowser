@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Modal Overlay Fixture</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: sans-serif;
+      }
+
+      .page {
+        min-height: 100vh;
+        padding: 24px;
+      }
+
+      .backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.7);
+        z-index: 20;
+      }
+
+      .modal {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        width: min(560px, calc(100vw - 48px));
+        transform: translate(-50%, -50%);
+        padding: 24px;
+        border-radius: 16px;
+        background: #fff;
+        z-index: 30;
+        box-shadow: 0 20px 80px rgba(0, 0, 0, 0.35);
+      }
+
+      .actions {
+        display: flex;
+        gap: 12px;
+        margin-top: 24px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <header>
+        <a href="/background-about">About</a>
+      </header>
+      <main>
+        <h1>Background Search</h1>
+        <form action="/search">
+          <input type="text" name="q" placeholder="Search">
+          <button type="submit">Search</button>
+        </form>
+      </main>
+      <footer>
+        <a href="/background-privacy">Privacy</a>
+      </footer>
+    </div>
+
+    <div class="backdrop" aria-hidden="true"></div>
+
+    <div class="modal" role="dialog" aria-modal="true" aria-label="Cookie choices">
+      <h2>Before you continue</h2>
+      <p>We use cookies and data to keep the service secure.</p>
+      <div class="actions">
+        <button type="button">Reject all</button>
+        <button type="button">Accept all</button>
+      </div>
+    </div>
+  </body>
+</html>

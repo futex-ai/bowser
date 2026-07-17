@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Dynamic Fixture</title>
+    <script>
+      window.addEventListener('DOMContentLoaded', () => {
+        setTimeout(() => {
+          const loaded = document.createElement('p');
+          loaded.id = 'loaded';
+          loaded.textContent = 'Loaded later';
+          document.body.appendChild(loaded);
+        }, 250);
+      });
+    </script>
+  </head>
+  <body>
+    <main>
+      <p>Waiting...</p>
+    </main>
+  </body>
+</html>

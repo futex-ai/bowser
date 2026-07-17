@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Keyboard Shortcut Fixture</title>
+    <script>
+      window.__bowserKeypressLog = [];
+
+      function comboFor(event) {
+        const parts = [];
+        if (event.metaKey) parts.push('Meta');
+        if (event.ctrlKey) parts.push('Control');
+        if (event.altKey) parts.push('Alt');
+        if (event.shiftKey) parts.push('Shift');
+        const key =
+          event.key === ' '
+            ? 'Space'
+            : ['Meta', 'Control', 'Alt', 'Shift'].includes(event.key)
+              ? ''
+              : event.key;
+        if (key) parts.push(key);
+        return parts.join('+') || (event.key === ' ' ? 'Space' : event.key);
+      }
+
+      window.addEventListener('DOMContentLoaded', () => {
+        const editor = document.querySelector('textarea[name="message"]');
+        const status = document.getElementById('status');
+        const log = document.getElementById('log');
+
+        const record = (event) => {
+          const combo = comboFor(event);
+          window.__bowserKeypressLog.push({
+            type: event.type,
+            key: event.key,
+            code: event.code,
+            isTrusted: event.isTrusted,
+            metaKey: event.metaKey,
+            ctrlKey: event.ctrlKey,
+            altKey: event.altKey,
+            shiftKey: event.shiftKey,
+            combo
+          });
+          log.textContent = `${event.type}: ${combo}`;
+          if (event.type === 'keydown' && event.metaKey && event.key === 'Enter') {
+            event.preventDefault();
+            status.textContent = 'Meta+Enter fired';
+          }
+          if (
+            event.type === 'keydown' &&
+            !event.metaKey &&
+            !event.ctrlKey &&
+            !event.altKey &&
+            !event.shiftKey &&
+            event.code === 'Space'
+          ) {
+            event.preventDefault();
+            status.textContent = 'Space fired';
+          }
+        };
+
+        editor.addEventListener('keydown', record);
+        editor.addEventListener('keypress', record);
+        editor.addEventListener('keyup', record);
+      });
+    </script>
+  </head>
+  <body>
+    <main>
+      <textarea name="message" placeholder="Message"></textarea>
+      <p id="status">Idle</p>
+      <p id="log">Waiting</p>
+    </main>
+  </body>
+</html>
