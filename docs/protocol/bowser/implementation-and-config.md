@@ -166,8 +166,10 @@ should flush metadata and profile state before replacing the previous usable
 snapshot. Bowser does not own a deployment's backup or environment-routing
 policy.
 
-Bowser does not expose proxy transport configuration. Use a VPN outside Bowser
-when browser traffic must leave through a different network route or IP address.
+The local engine does not expose proxy transport configuration. Hosted egress
+is an external sandbox-provider concern and is configured before this engine
+launches Chrome; see
+[Managed Agent And Browser Runtime](./managed-agent-and-browser.md).
 
 ### Headed Linux Containers
 

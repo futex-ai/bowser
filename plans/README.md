@@ -4,7 +4,7 @@ Implementation plans are added here only with explicit user consent.
 
 ## Active
 
-No active plans.
+- [API-First Managed Browser Product](./api-first-managed-browser-product.md)
 
 ## Completed
 

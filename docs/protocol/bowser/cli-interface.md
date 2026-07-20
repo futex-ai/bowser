@@ -261,8 +261,10 @@ Downloads are browser-native: redirects, cookies, authentication state, and
 `Content-Disposition` are handled by Chrome rather than by a separate HTTP
 client.
 
-Bowser does not include a `--proxy` flag. Use a VPN outside Bowser when browser
-traffic must leave through a different network route or IP address.
+The current local CLI does not include a `--proxy` flag. The future remote CLI
+selects managed egress through the hosted API rather than passing proxy
+credentials to the local browser process; see
+[Managed Dashboard And CLI](./managed-dashboard-and-cli.md).
 
 ### Google Smoke Flow
 

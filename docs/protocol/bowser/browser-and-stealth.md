@@ -93,7 +93,10 @@ controls, and Bowser's default stealth flow pass on the same machine and
 network. Native headless Chrome still reaches Google's `/sorry/` page for this
 flow.
 
-Proxy transport is not a Bowser feature. Users who need network-level routing or
-IP changes should use a VPN outside Bowser.
+The local Bowser engine does not own proxy transport. Local callers who need
+network-level routing or IP changes must provide it outside the process. The
+managed product applies route configuration at the E2B sandbox boundary as
+defined in [Managed Agent And Browser Runtime](./managed-agent-and-browser.md),
+so proxy credentials and tenant policy do not enter this crate.
 
 Stealth support is an implementation goal, not a guarantee of indistinguishability. Acceptance criteria are limited to the concrete behaviours specified in this document and the associated tests.
