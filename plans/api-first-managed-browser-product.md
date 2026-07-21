@@ -60,6 +60,9 @@ Browser Use, Playwright, Kernel, or a dashboard-side browser implementation.
   retention worker, and live proxy. Browsers remain in E2B.
 - Identity Platform handles dashboard identity. Project API keys authenticate
   customer applications and the CLI.
+- Mokabook is the required mockup registry, browser, and visual-review
+  workflow. It reads the same committed artifacts as direct-file review and is
+  never a separate source of visual truth.
 - `bowser-503012` is development/staging only. A separate GCP project is
   required before production customer data.
 - Self-serve billing and a full marketing site are deferred; usage ledger,
@@ -93,7 +96,8 @@ intended ownership is:
   `bowser-worker`.
 - **Remote-first CLI plus explicit local namespace:** `bowser-cli`.
 - **Expo application:** `ts/app`.
-- **Mockup system:** `docs/mockups`.
+- **Mokabook registry, renderer, and generated mockups:** `docs/mockups` and
+  `ts/mockups`.
 - **E2B, Terraform, and Helm sources:** `infra/e2b`, `infra/terraform`, and
   `infra/helm`.
 
@@ -496,13 +500,49 @@ E2B, PostgreSQL, or internal service crates.
 Milestone acceptance: a developer can use every launch capability from a clean
 terminal with only a Bowser API key, and machine-readable output is stable.
 
-### Milestone 9: Specify The Expo Experience In Mockups
+### Milestone 9: MOCKUPS — Set Up And Use Mokabook
 
-Summary: complete design/spec work before dashboard implementation, with
-separate mobile and desktop components and no fake product data.
+Tags: mockup
 
-- [ ] Scaffold the React-backed mockup system and shared dark editorial design
-  tokens/components under `docs/mockups/src` before creating page markup.
+Summary: establish Mokabook as Bowser's visual-spec workflow and use it to
+complete every mobile and desktop design before Expo implementation begins.
+
+- [ ] Use `/Users/calummoore/projects/futex/accounting` as the read-only
+  workflow reference for registry, generation, Browse, Review, testing, and CI;
+  name Bowser's tool Mokabook and keep all implementation in this repository.
+- [ ] Add a root private `package.json` whose `mockups:*` scripts forward into
+  the TypeScript npm workspace; create `ts/package.json`, its committed npm
+  lockfile, and the private `ts/mockups` workspace package so `ts/app` can join
+  the same workspace later.
+- [ ] Implement the Bowser-owned structured registry under
+  `docs/mockups/src/entries/**/*.mockup.tsx` with typed `defineScreen`,
+  `defineCollection`, and `defineUseCase` helpers, globally unique stable IDs,
+  durable routes, related-doc links, dependency metadata, and no parallel
+  hand-maintained catalogue.
+- [ ] Implement one shared React server-rendering path that writes committed
+  chrome-less mobile and desktop fragments plus a deterministic
+  `docs/mockups/mokabook-manifest.json`; keep generated artifacts directly
+  openable without Mokabook running.
+- [ ] Implement `npm run mockups:build`, `mockups:check`, `mockups:test`, and
+  `mockups:typecheck`, including stale/orphan output, duplicate ID/route,
+  metadata, viewport-pair, link, collection, and use-case validation.
+- [ ] Implement `npm run mockups:serve` as the Mokabook Browse experience over
+  the manifest and committed fragments: searchable nested navigation, stable
+  `/view/<route>` and `/id/<id>` deep links, mobile/desktop/both controls,
+  use-case steps, and collapsible design/spec details.
+- [ ] Implement `npm run mockups:review -- --base origin/main` with
+  added/removed/changed classification per viewport, side-by-side, overlay,
+  and difference views, shared-impact reporting, and a self-contained
+  `.context/mokabook-review` artifact.
+- [ ] Add `npm run mockups:test:browser` for Mokabook navigation, direct links,
+  viewport switching, Review generation, missing routes, and clean shutdown;
+  add a CI job that runs the gates and uploads `mokabook-review` whenever
+  mockup sources or shared dependencies change.
+- [ ] Add `docs/mockups/README.md` documenting source ownership, registry
+  authoring, generated files, every command, direct-file review, Mokabook
+  Browse/Review, troubleshooting, and the rule against hand-editing output.
+- [ ] Establish shared dark editorial design tokens and reusable mockup
+  components under `docs/mockups/src/components` before creating screens.
 - [ ] Create standalone mobile and desktop screen components for home hero,
   login, signup, password reset, dashboard overview, API keys, browsers,
   browser detail/live view, tasks, task detail, playground chat, logs, usage,
@@ -525,19 +565,25 @@ separate mobile and desktop components and no fake product data.
 - [ ] Keep implementation notes outside rendered screens and ensure user copy
   contains no E2B, schema-pipeline, environment, or internal code terms unless
   shown in a secondary developer detail where genuinely useful.
-- [ ] Generate and commit matching HTML with `npm run mockups:build`.
-- [ ] Run `npm run mockups:check`, `npm run mockups:test`, and
-  `npm run mockups:typecheck` with 100% pass rate.
-- [ ] Open every changed generated page directly from disk at mobile and
-  desktop sizes, verify visual/layout/accessibility behavior, and record the
-  manual smoke result.
+- [ ] Generate and commit every fragment and the Mokabook manifest with
+  `npm run mockups:build`.
+- [ ] Pass build, check, unit, browser, and typecheck gates; generate the Review
+  comparison against `origin/main`; start `mockups:serve`; and review every
+  changed viewport in Mokabook.
+- [ ] Open every changed generated fragment directly from disk at mobile and
+  desktop sizes, verify visual, layout, link, and accessibility behavior, and
+  record the manual smoke result.
 - [ ] Review all screens against hosted API fields and add any discovered
   contract gaps to the protocol and this plan before implementation.
 
-Milestone acceptance: every launch route and state has an approved reusable
-mobile/desktop mockup backed by the real API contract.
+Milestone acceptance: Mokabook is reproducible from a clean checkout, its
+Browse and Review modes operate over one checked registry and committed output,
+and every launch route and state has an approved reusable mobile/desktop
+mockup backed by the real API contract.
 
 ### Milestone 10: Build The Expo Home, Dashboard, And Playground
+
+Tags: ui
 
 Summary: implement the approved mockups as a web-first Expo product client,
 without adding alternate backend logic.

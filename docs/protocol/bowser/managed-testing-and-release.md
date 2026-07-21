@@ -107,9 +107,12 @@ and cleanup. Tests assert that secrets never appear in arguments or output.
 
 ## Dashboard And Mockup Verification
 
-Design implementation starts with the repository mockup workflow. Every
-changed page passes build, structure, test, typecheck, and direct-file visual
-smoke checks for mobile and desktop.
+Design implementation starts in Mokabook. Every changed screen passes
+`mockups:build`, `mockups:check`, `mockups:test`, `mockups:test:browser`, and
+`mockups:typecheck`, then receives direct-file mobile/desktop smoke checks.
+`mockups:review -- --base origin/main` must produce a valid self-contained
+comparison artifact whose changed-screen inventory is reviewed before Expo
+implementation begins. CI uploads the same artifact for mockup changes.
 
 The Expo app passes lint, typecheck, unit/component tests, production web
 build, route tests, and browser end-to-end tests. Visual regression covers the

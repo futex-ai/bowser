@@ -119,16 +119,52 @@ unknown route. API-key material, proxy credentials, provider tokens, profile
 contents, hidden reasoning, and unredacted customer content never render.
 Operator queries themselves appear in the audit view.
 
-## Mockup Contract
+## Mockups And Mokabook
 
-Design work first creates React-backed pages under `docs/mockups/src/pages`
-and shared components under `docs/mockups/src/components`. Each standalone
-screen includes mobile and desktop variants. User flows compose only existing
-screen components and link back to each source screen.
+Mockups are Bowser's visual product specification. **Mokabook** is the required
+local browser and comparison tool for those mockups; it consumes the same
+registry, renderer, manifest, and committed HTML rather than becoming a second
+source of truth.
 
-Generated HTML is committed after `npm run mockups:build`. Changed mockups must
-pass `mockups:check`, `mockups:test`, and `mockups:typecheck` and be opened
-directly from disk for visual smoke testing before Expo implementation begins.
+The setup uses a root `package.json` that forwards mockup commands into the
+TypeScript npm workspace. `ts/mockups` owns the private Mokabook package and
+dependencies. Canonical source lives under `docs/mockups/src`: reusable visual
+components under `components`, structured definitions under
+`entries/**/*.mockup.tsx`, and the Mokabook shell under `mokabook`. Generated
+mobile and desktop fragments plus `docs/mockups/mokabook-manifest.json` remain
+committed and directly openable from disk.
+
+The registry provides `defineScreen`, `defineCollection`, and `defineUseCase`:
+
+- a screen has one stable ID, one mobile render, and one desktop render;
+- a collection is navigation structure and does not duplicate a screen;
+- a use case references existing screen IDs and links every step back to its
+  standalone screen.
+
+Mokabook Browse mode provides searchable nested navigation, durable screen and
+use-case links, viewport controls, and a details panel with description,
+rationale, source, related protocol pages, and dependencies. Review mode
+compares committed base and working-tree fragments per viewport against
+`origin/main`, supports side-by-side, overlay, and difference views, and writes
+a self-contained `.context/mokabook-review` artifact for local or CI review.
+
+The required root commands are:
+
+```bash
+npm run mockups:build
+npm run mockups:check
+npm run mockups:serve
+npm run mockups:review -- --base origin/main
+npm run mockups:test
+npm run mockups:test:browser
+npm run mockups:typecheck
+```
+
+`mockups:check` rejects stale generated output, duplicate IDs or routes,
+missing mobile/desktop renders, broken links, orphan entries, and use cases
+that reference missing screens. Changed screens must pass every terminating
+gate, produce a Review artifact, be browsed through `mockups:serve`, and be
+opened directly from disk before Expo implementation begins.
 
 ## Remote CLI
 
