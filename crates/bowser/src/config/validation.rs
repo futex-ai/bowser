@@ -41,7 +41,20 @@ pub(crate) fn parse_viewport(value: &str) -> Result<Viewport> {
 }
 
 pub(crate) fn validate_config(config: &BrowserConfig) -> Result<()> {
-    validate_viewport(&config.viewport)
+    validate_viewport(&config.viewport)?;
+    validate_chrome_args(&config.chrome_args)
+}
+
+fn validate_chrome_args(args: &[String]) -> Result<()> {
+    for arg in args {
+        let key = arg.split('=').next().unwrap_or(arg);
+        if matches!(key, "--remote-debugging-port" | "--user-data-dir") {
+            return Err(Error::config(format!(
+                "caller Chrome argument `{key}` is reserved by Bowser"
+            )));
+        }
+    }
+    Ok(())
 }
 
 fn validate_viewport(viewport: &Viewport) -> Result<()> {

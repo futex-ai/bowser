@@ -25,6 +25,11 @@ Sessions preserve:
 Sessions do not preserve element IDs across captures. On resume, the next capture rebuilds the DOM mapping and assigns fresh IDs.
 IDs for truncated expandable containers are also ephemeral and are rebuilt on every capture.
 
+Detached-session resume depends on a still-running Chrome process on the same
+host. Portable persistence instead uses the versioned checkpoint contract in
+[Checkpoints And Machine Output](./checkpoints-and-machine-output.md), which
+creates a new session and deliberately carries no live process identity.
+
 Session behaviour:
 
 1. `bowser get` and bare-URL invocation (`bowser <URL>`) create or resume a session, perform the requested navigation/capture, then detach while leaving the session available for reuse.

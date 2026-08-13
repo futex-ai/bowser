@@ -54,6 +54,8 @@ pub(crate) struct Cli {
     pub(crate) ai_model: Option<String>,
     #[arg(long, global = true)]
     pub(crate) config: Option<PathBuf>,
+    #[arg(long, global = true, action = ArgAction::SetTrue)]
+    pub(crate) json_envelope: bool,
     #[arg(short = 'v', long, global = true, action = ArgAction::Count)]
     pub(crate) verbose: u8,
     #[arg(short = 'q', long, global = true, action = ArgAction::SetTrue)]
@@ -87,6 +89,7 @@ pub(crate) enum Command {
         #[command(subcommand)]
         command: SessionSubcommand,
     },
+    Capabilities,
 }
 
 #[derive(Clone, Debug, clap::Args)]
@@ -250,8 +253,20 @@ pub enum PageSubcommand {
 #[derive(Clone, Debug, Subcommand)]
 pub enum SessionSubcommand {
     List,
-    Info { session_id: String },
-    Close { session_id: String },
+    Info {
+        session_id: String,
+    },
+    Close {
+        session_id: String,
+    },
+    Export {
+        #[arg(long)]
+        to: PathBuf,
+    },
+    Restore {
+        #[arg(long)]
+        from: PathBuf,
+    },
 }
 
 pub(crate) fn parse_viewport(value: &str) -> std::result::Result<bowser::Viewport, String> {

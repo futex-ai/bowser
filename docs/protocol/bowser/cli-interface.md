@@ -33,6 +33,7 @@ Options:
   --ai-model <MODEL>         AI model name
   --config <PATH>            Config file path
                               [default: ~/.config/bowser/config.yaml]
+  --json-envelope            Emit one versioned JSON result object on stdout
   -v, --verbose              Increase log verbosity (-v, -vv, -vvv)
   -q, --quiet                Suppress non-essential output
   -h, --help                 Print help
@@ -40,6 +41,18 @@ Options:
 ```
 
 If the first non-flag argument is a URL instead of a named command, Bowser treats it as `get <URL>`.
+
+`--json-envelope` applies to one-shot commands and is specified in
+[Checkpoints And Machine Output](./checkpoints-and-machine-output.md). It does
+not overload capture's existing `--format` or `--output` flags.
+
+Caller-supplied `--chrome-args` are appended after Bowser's stealth, window,
+and baseline flags, so Chrome's normal last-occurrence behavior gives the
+caller precedence for repeatable Chrome options. Bowser reserves and rejects
+caller values for `--remote-debugging-port` and `--user-data-dir` because they
+would break session identity and ownership. This makes conflicts explicit;
+arguments are never silently dropped. Network-hardening options such as
+`--webrtc-ip-handling-policy=disable_non_proxied_udp` pass through unchanged.
 
 The platform-default config file is optional when `--config` is omitted. When `--config <PATH>` is supplied, that exact file must exist and any missing-file, read, parse, or validation failure is reported with the selected path.
 
@@ -410,4 +423,15 @@ Subcommands:
   list                       List detached sessions
   info <SESSION_ID>          Show detached-session metadata, including selected page and page summaries
   close <SESSION_ID>         Close a detached session, remove its metadata, and remove any Bowser-owned ephemeral profile
+  export --to <PATH>         Export the session selected by global --session to a portable checkpoint
+  restore --from <PATH>      Restore a portable checkpoint into a fresh session and profile
 ```
+
+Checkpoint export and restore behavior is defined in
+[Checkpoints And Machine Output](./checkpoints-and-machine-output.md).
+
+#### `bowser capabilities`
+
+Print the installed Bowser version, supported envelope/checkpoint versions,
+and feature flags. Plain mode prints the capability object as JSON; with
+`--json-envelope`, it is the command-specific `result` in envelope version 1.

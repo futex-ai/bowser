@@ -47,6 +47,16 @@ pub struct SessionInfo {
     pub selected_page_id: Option<String>,
 }
 
+/// Host-portable login and tab state. `checkpoint` is currently 1.
+pub struct SessionCheckpoint {
+    pub checkpoint: u32,
+    pub created_at: DateTime<Utc>,
+    pub cookies: Vec<CheckpointCookie>,
+    pub origins: Vec<CheckpointOrigin>,
+    pub pages: Vec<CheckpointPage>,
+    pub selected_page: usize,
+}
+
 pub enum SessionPageType {
     Tab,
 }

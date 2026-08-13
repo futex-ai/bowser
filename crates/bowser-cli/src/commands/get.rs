@@ -1,29 +1,34 @@
 //! `bowser get`.
 
-use std::path::PathBuf;
 use std::time::Duration;
 
 use bowser::{Browser, BrowserEngine};
 
 use crate::GetArgs;
-use crate::commands::{render_capture, write_output};
+use crate::commands::page_output;
 use crate::error::Result;
+use crate::output::{CommandContext, CommandOutput};
 use crate::url::normalize_navigation_target;
-use crate::{PageFormat, StructuredFormat};
 
 /// Runs the single-shot capture flow.
-pub async fn run(config: bowser::BrowserConfig, args: GetArgs) -> Result<()> {
+pub async fn run(
+    config: bowser::BrowserConfig,
+    args: GetArgs,
+    context: &mut CommandContext,
+) -> Result<CommandOutput> {
     let browser = Browser::launch(config).await?;
     let session = browser.session_info().await?;
+    context.update_session(&session);
+    context.announce_session_on_failure = true;
     let operation_result = execute(&browser, args).await;
+    context.update_session(&browser.session_info().await?);
     let detach_result = browser.detach().await;
-    eprintln!("Session: {}", session.id);
-    operation_result?;
+    let output = operation_result?;
     detach_result?;
-    Ok(())
+    Ok(output.human_stderr(format!("Session: {}\n", session.id)))
 }
 
-async fn execute(browser: &dyn BrowserEngine, args: GetArgs) -> Result<()> {
+async fn execute(browser: &dyn BrowserEngine, args: GetArgs) -> Result<CommandOutput> {
     let page = browser.current_page().await?;
     let url = normalize_navigation_target(&args.url);
     page.navigate(&url).await?;
@@ -35,24 +40,21 @@ async fn execute(browser: &dyn BrowserEngine, args: GetArgs) -> Result<()> {
     if args.delay > 0 {
         tokio::time::sleep(Duration::from_millis(args.delay)).await;
     }
-    let capture = page.capture().await?;
-    if let Some(path) = args.screenshot.as_ref() {
+    let screenshot = if let Some(path) = args.screenshot.as_ref() {
         let png = page.screenshot().await?;
-        save_binary(path, &png).await?;
-    }
-    let output = match args.format {
-        PageFormat::Html => page.rendered_html().await?,
-        PageFormat::Yaml => render_capture(&capture, StructuredFormat::Yaml)?,
-        PageFormat::Json => render_capture(&capture, StructuredFormat::Json)?,
+        Some((path.clone(), png))
+    } else {
+        None
     };
-    write_output(args.output.as_deref(), &output).await?;
-    Ok(())
-}
-
-async fn save_binary(path: &PathBuf, bytes: &[u8]) -> Result<()> {
-    tokio::fs::write(path, bytes)
-        .await
-        .map_err(|_| crate::error::CliError::OutputWrite {
-            path: path.display().to_string(),
-        })
+    let mut output = page_output(page.as_ref(), args.format, args.output.as_deref()).await?;
+    if let Some((path, png)) = screenshot {
+        let mut result = output.result.as_object().cloned().unwrap_or_default();
+        result.insert(
+            "screenshot".to_string(),
+            serde_json::json!({ "path": path, "bytes": png.len() }),
+        );
+        output.result = serde_json::Value::Object(result);
+        output = output.binary_file(path, png);
+    }
+    Ok(output)
 }

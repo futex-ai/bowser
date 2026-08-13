@@ -4,7 +4,7 @@ use std::error::Error;
 
 use tempfile::tempdir;
 
-use super::load_browser_config;
+use super::{is_display_request, load_browser_config, machine_flag_requested};
 use crate::error::CliError;
 
 #[test]
@@ -20,6 +20,22 @@ fn config_load_errors_preserve_the_library_cause() {
 
     assert!(cli_error.source().is_some());
     assert!(cli_error.to_string().contains(&library_error.to_string()));
+}
+
+#[test]
+fn detects_machine_flag_without_consuming_other_arguments() {
+    assert!(machine_flag_requested([
+        "bowser".into(),
+        "capture".into(),
+        "--json-envelope".into(),
+    ]));
+    assert!(!machine_flag_requested(
+        ["bowser".into(), "capture".into(),]
+    ));
+    assert!(is_display_request(clap::error::ErrorKind::DisplayHelp));
+    assert!(!is_display_request(
+        clap::error::ErrorKind::MissingRequiredArgument
+    ));
 }
 
 #[test]

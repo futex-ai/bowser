@@ -36,6 +36,26 @@ fn chrome_launch_uses_a_browser_assigned_debug_port() {
 }
 
 #[test]
+fn caller_chrome_arguments_are_appended_after_stealth_flags() {
+    let caller_arg = "--webrtc-ip-handling-policy=disable_non_proxied_udp";
+    let config = BrowserConfig {
+        chrome_args: vec![caller_arg.to_string()],
+        ..BrowserConfig::default()
+    };
+    let args = build_chrome_args(&config, PathBuf::from("/tmp/profile").as_path(), false);
+    let stealth_index = args
+        .iter()
+        .position(|arg| arg == "--disable-blink-features=AutomationControlled")
+        .expect("stealth flag");
+    let caller_index = args
+        .iter()
+        .position(|arg| arg == caller_arg)
+        .expect("caller WebRTC flag");
+
+    assert!(caller_index > stealth_index);
+}
+
+#[test]
 fn default_stealth_launch_uses_automation_safe_headed_shape() {
     let config = BrowserConfig::default();
     let args = build_chrome_args(&config, PathBuf::from("/tmp/profile").as_path(), false);

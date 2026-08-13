@@ -1,5 +1,6 @@
 //! Browser lifecycle and session attachment.
 
+mod checkpoint;
 mod display;
 mod engine;
 mod lifecycle;

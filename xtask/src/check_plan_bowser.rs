@@ -86,6 +86,8 @@ pub(crate) const BOWSER_COMMANDS: &[CheckCommand] = &[
             "pointer_click",
             "--test",
             "session_pages",
+            "--test",
+            "checkpoint_restore",
             "--",
             "--test-threads=1",
         ],

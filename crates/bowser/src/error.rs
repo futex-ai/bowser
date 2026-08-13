@@ -97,6 +97,54 @@ pub enum Error {
     #[error("[bowser/session] failed to detach session: {reason}")]
     SessionDetach { reason: String },
 
+    /// The checkpoint file could not be read.
+    #[error("[bowser/checkpoint] failed to read checkpoint {path}: {source}")]
+    CheckpointRead {
+        /// Checkpoint path Bowser attempted to read.
+        path: std::path::PathBuf,
+        /// Filesystem failure returned by the operating system.
+        source: std::io::Error,
+    },
+
+    /// The checkpoint file could not be written atomically.
+    #[error("[bowser/checkpoint] failed to write checkpoint {path}: {source}")]
+    CheckpointWrite {
+        /// Checkpoint path Bowser attempted to write.
+        path: std::path::PathBuf,
+        /// Filesystem failure returned by the operating system.
+        source: std::io::Error,
+    },
+
+    /// The checkpoint document violates its versioned schema.
+    #[error("[bowser/checkpoint] invalid checkpoint: {reason}")]
+    CheckpointInvalid {
+        /// Validation failure.
+        reason: String,
+    },
+
+    /// The checkpoint document uses a version this Bowser cannot restore.
+    #[error("[bowser/checkpoint] unsupported checkpoint version: {version}")]
+    CheckpointUnsupported {
+        /// Unsupported checkpoint version.
+        version: u32,
+    },
+
+    /// Chrome could not provide all state required for a portable checkpoint.
+    #[error("[bowser/checkpoint] failed to capture session state: {reason}")]
+    CheckpointCapture {
+        /// CDP or page-state failure.
+        reason: String,
+    },
+
+    /// Chrome could not apply all state from a valid checkpoint.
+    #[error("[bowser/checkpoint] failed to restore session state: {reason}")]
+    CheckpointRestore {
+        /// Fresh session created before the failure, when one exists.
+        session_id: Option<String>,
+        /// CDP or page-state failure.
+        reason: String,
+    },
+
     #[error("[bowser/expand] element not expandable: {element_id}")]
     ExpandNotFound { element_id: u32 },
 

@@ -12,24 +12,25 @@ bowser/
 │   │   ├── Cargo.toml
 │   │   └── src/
 │   │       ├── lib.rs
-│   │       ├── browser.rs       # browser lifecycle (launch, resume, detach, close)
-│   │       ├── page.rs          # page interaction (navigate, click, type, etc.)
-│   │       ├── capture.rs       # DOM → YAML transformation
+│   │       ├── browser/         # browser lifecycle, pages, and checkpoint orchestration
+│   │       ├── page/            # page interaction (navigate, click, type, etc.)
+│   │       ├── capture/         # DOM → YAML transformation
+│   │       ├── checkpoint/      # portable checkpoint types and atomic JSON I/O
 │   │       ├── keyboard.rs      # browser key normalization and dispatch helpers
 │   │       ├── mouse.rs         # pointer-route helpers for visible clicks
 │   │       ├── stealth.rs       # stealth patch injection
 │   │       ├── stability.rs     # page stability detection
-│   │       ├── yaml.rs          # YAML serialization
-│   │       ├── ai.rs            # AI image summarization client
-│   │       ├── config.rs        # configuration types
-│   │       ├── session.rs       # detached session lifecycle and metadata
-│   │       ├── expand.rs        # truncated node expansion handling
-│   │       ├── metadata.rs      # metadata lookup helpers
+│   │       ├── yaml/            # YAML serialization
+│   │       ├── ai/              # AI image summarization client
+│   │       ├── config/          # configuration types
+│   │       ├── session/         # detached session lifecycle and metadata
 │   │       └── error.rs         # error types
 │   └── bowser-cli/          # binary crate (CLI)
 │       ├── Cargo.toml
 │       └── src/
 │           ├── main.rs
+│           ├── dispatch.rs      # one-shot dispatch and envelope ownership
+│           ├── output.rs        # human/machine result and deferred file output
 │           ├── commands/
 │           │   ├── mod.rs
 │           │   ├── expand.rs    # expand command

@@ -1,5 +1,6 @@
 //! Command helpers.
 
+pub mod capabilities;
 pub mod capture;
 pub mod describe;
 pub mod download;
@@ -17,34 +18,52 @@ pub mod session;
 use std::path::Path;
 
 use crate::error::{CliError, Result};
+use crate::output::CommandOutput;
 use crate::{PageFormat, StructuredFormat};
 
-/// Writes output to stdout or a file.
-pub async fn write_output(path: Option<&Path>, content: &str) -> Result<()> {
-    if let Some(path) = path {
-        tokio::fs::write(path, content)
-            .await
-            .map_err(|_| CliError::OutputWrite {
-                path: path.display().to_string(),
-            })?;
-    } else {
-        print!("{content}");
-    }
-    Ok(())
-}
-
-/// Renders the current page in a page-level format.
-pub async fn render_page(page: &dyn bowser::PageEngine, format: PageFormat) -> Result<String> {
-    match format {
-        PageFormat::Html => Ok(page.rendered_html().await?),
+/// Renders a page and returns either embedded machine data or a file reference.
+pub async fn page_output(
+    page: &dyn bowser::PageEngine,
+    format: PageFormat,
+    path: Option<&Path>,
+) -> Result<CommandOutput> {
+    let (human, embedded) = match format {
+        PageFormat::Html => {
+            let html = page.rendered_html().await?;
+            (html.clone(), serde_json::json!({ "html": html }))
+        }
         PageFormat::Yaml => {
             let capture = page.capture().await?;
-            render_capture(&capture, StructuredFormat::Yaml)
+            (
+                render_capture(&capture, StructuredFormat::Yaml)?,
+                serde_json::json!({ "capture": capture }),
+            )
         }
         PageFormat::Json => {
             let capture = page.capture().await?;
-            render_capture(&capture, StructuredFormat::Json)
+            (
+                render_capture(&capture, StructuredFormat::Json)?,
+                serde_json::json!({ "capture": capture }),
+            )
         }
+    };
+    if let Some(path) = path {
+        return Ok(CommandOutput::result(serde_json::json!({
+            "output": {
+                "path": path,
+                "format": format_name(format),
+            }
+        }))?
+        .text_file(path.to_path_buf(), human));
+    }
+    Ok(CommandOutput::result(embedded)?.human_stdout(human))
+}
+
+fn format_name(format: PageFormat) -> &'static str {
+    match format {
+        PageFormat::Yaml => "yaml",
+        PageFormat::Json => "json",
+        PageFormat::Html => "html",
     }
 }
 
