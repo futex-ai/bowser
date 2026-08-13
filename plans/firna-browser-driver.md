@@ -53,9 +53,11 @@ Run all repository-required checks and make the completed work reviewable.
 - [x] Run focused formatting, clippy, unit, integration, CLI, and smoke tests.
 - [x] Run `cargo xtask check` with a 100% pass rate.
 - [x] Review the final diff against `origin/main`.
-- [ ] Run `git add -A`, commit all work with a Conventional Commit, and push the
+- [x] Run `git add -A`, commit all work with a Conventional Commit, and push the
       current branch.
 - [ ] Run `cargo xtask review` after the push and report each finding without
-      automatically changing code in response.
+      automatically changing code in response. Attempted twice after the push;
+      the reviewer failed before analysis because the OpenAI API returned HTTP
+      401 for both WebSocket and HTTPS authentication.
 - [ ] Update this plan and the plan index to completed after the post-push
       review.
