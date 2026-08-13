@@ -6,13 +6,19 @@ use bowser::{Browser, BrowserEngine, MetadataRecord, PageEngine};
 
 use crate::DownloadArgs;
 use crate::error::Result;
+use crate::output::{CommandContext, CommandOutput};
 use crate::url::normalize_navigation_target;
 
 /// Runs the browser-native download flow.
-pub async fn run(config: bowser::BrowserConfig, args: DownloadArgs) -> Result<()> {
+pub async fn run(
+    config: bowser::BrowserConfig,
+    args: DownloadArgs,
+    context: &mut CommandContext,
+) -> Result<CommandOutput> {
     let direct_request = direct_download_request(&config, &args)?;
     let browser = Browser::launch(config).await?;
     let session = browser.session_info().await?;
+    context.update_session(&session);
     let page = browser.current_page().await?;
     let request = match direct_request {
         Some(request) => Ok(request),
@@ -25,13 +31,19 @@ pub async fn run(config: bowser::BrowserConfig, args: DownloadArgs) -> Result<()
     let detach = browser.detach().await;
     let result = result?;
     detach?;
-    println!(
-        "Downloaded: {} ({} bytes)",
-        result.path.display(),
-        result.bytes
-    );
-    eprintln!("Session: {}", session.id);
-    Ok(())
+    CommandOutput::result(serde_json::json!({
+        "path": result.path,
+        "bytes": result.bytes,
+    }))
+    .map(|output| {
+        output
+            .human_stdout(format!(
+                "Downloaded: {} ({} bytes)\n",
+                result.path.display(),
+                result.bytes
+            ))
+            .human_stderr(format!("Session: {}\n", session.id))
+    })
 }
 
 fn direct_download_request(

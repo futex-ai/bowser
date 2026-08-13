@@ -5,6 +5,7 @@ mod browser;
 mod browser_identity;
 mod capture;
 mod cdp_trace;
+mod checkpoint;
 mod config;
 mod debug_port;
 mod error;
@@ -28,6 +29,10 @@ pub use browser_identity::{
     BrowserIdentitySnapshot, ChromeIdentity, MimeTypesIdentity, PluginIdentity,
     UserAgentBrandIdentity, UserAgentDataIdentity, ViewportIdentity, WebGlIdentity,
     diagnostic_script as browser_identity_diagnostic_script,
+};
+pub use checkpoint::{
+    CHECKPOINT_VERSION, CheckpointCookie, CheckpointOrigin, CheckpointPage, CheckpointStorageEntry,
+    CheckpointSummary, SessionCheckpoint, read_checkpoint, write_checkpoint,
 };
 pub use config::{
     AiConfig, AiProvider, BrowserConfig, ConfigOverrides, OutputConfig, SessionConfig,

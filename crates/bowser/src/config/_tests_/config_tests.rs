@@ -51,6 +51,26 @@ fn rejects_zero_viewport_from_final_config_overrides() {
 }
 
 #[test]
+fn rejects_chrome_arguments_reserved_for_session_identity() {
+    for argument in [
+        "--remote-debugging-port=9222",
+        "--remote-debugging-port",
+        "--user-data-dir=/tmp/not-bowser-owned",
+        "--user-data-dir",
+    ] {
+        let error = load_config(
+            None,
+            ConfigOverrides {
+                chrome_args: Some(vec![argument.to_string()]),
+                ..ConfigOverrides::default()
+            },
+        )
+        .expect_err("reserved Chrome argument");
+        assert!(matches!(error, crate::error::Error::Config { .. }));
+    }
+}
+
+#[test]
 fn applies_overrides() {
     let config = load_config(
         None,

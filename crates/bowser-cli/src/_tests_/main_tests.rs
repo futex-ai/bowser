@@ -1,6 +1,6 @@
 use clap::Parser;
 
-use crate::args::{Cli, Command};
+use crate::args::{Cli, Command, SessionSubcommand};
 use crate::cli::config_overrides;
 use crate::dispatch::build_env_filter;
 
@@ -65,4 +65,38 @@ fn pointer_log_command_parses_demo_options() {
     };
     assert!(args.demo);
     assert_eq!(args.demo_clicks, Some(3));
+}
+
+#[test]
+fn machine_and_checkpoint_commands_parse() {
+    let export = Cli::parse_from([
+        "bowser",
+        "--json-envelope",
+        "--session",
+        "bsr_123",
+        "session",
+        "export",
+        "--to",
+        "checkpoint.json",
+    ]);
+    assert!(export.json_envelope);
+    let Some(Command::Session {
+        command: SessionSubcommand::Export { to },
+    }) = export.command
+    else {
+        panic!("expected session export command");
+    };
+    assert_eq!(to.to_string_lossy(), "checkpoint.json");
+
+    let restore = Cli::parse_from(["bowser", "session", "restore", "--from", "checkpoint.json"]);
+    assert!(matches!(
+        restore.command,
+        Some(Command::Session {
+            command: SessionSubcommand::Restore { .. }
+        })
+    ));
+    assert!(matches!(
+        Cli::parse_from(["bowser", "capabilities"]).command,
+        Some(Command::Capabilities)
+    ));
 }

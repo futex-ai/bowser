@@ -6,6 +6,7 @@ use async_trait::async_trait;
 use tokio::sync::Mutex;
 
 use crate::{
+    checkpoint::SessionCheckpoint,
     config::{BrowserConfig, validate_config},
     error::Result,
     model::{SessionInfo, SessionPageSummary},
@@ -40,6 +41,8 @@ pub trait BrowserEngine: Send + Sync {
     async fn new_page(&self, url: Option<&str>) -> Result<Box<dyn PageEngine>>;
     /// Closes the selected page, or the provided page id, and returns the next selected page.
     async fn close_page(&self, page_id: Option<&str>) -> Result<Box<dyn PageEngine>>;
+    /// Captures a host-portable checkpoint from the live session.
+    async fn export_checkpoint(&self) -> Result<SessionCheckpoint>;
     /// Detaches from the live browser process while keeping the session resumable.
     async fn detach(&self) -> Result<()>;
     /// Closes the browser process and removes persisted session metadata.
@@ -182,6 +185,10 @@ impl BrowserEngine for Browser {
 
     async fn close_page(&self, page_id: Option<&str>) -> Result<Box<dyn PageEngine>> {
         self.close_page_impl(page_id).await
+    }
+
+    async fn export_checkpoint(&self) -> Result<SessionCheckpoint> {
+        self.export_checkpoint_impl().await
     }
 
     async fn detach(&self) -> Result<()> {

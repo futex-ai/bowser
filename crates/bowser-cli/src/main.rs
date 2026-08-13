@@ -6,6 +6,7 @@ mod commands;
 mod dispatch;
 mod error;
 mod format;
+mod output;
 mod url;
 
 pub use self::args::{
@@ -17,9 +18,9 @@ pub use self::format::{PageFormat, StructuredFormat};
 
 #[tokio::main]
 async fn main() {
-    if let Err(err) = dispatch::run().await {
-        eprintln!("{err}");
-        std::process::exit(1);
+    let exit_code = dispatch::run().await;
+    if exit_code != 0 {
+        std::process::exit(exit_code);
     }
 }
 

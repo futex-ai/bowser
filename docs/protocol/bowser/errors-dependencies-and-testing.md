@@ -72,6 +72,10 @@ pub enum Error {
     #[error("[bowser/session] failed to detach session: {reason}")]
     SessionDetach { reason: String },
 
+    // CheckpointRead, CheckpointWrite, CheckpointInvalid,
+    // CheckpointUnsupported, CheckpointCapture, and CheckpointRestore retain
+    // typed path, version, reason, and fresh-session context as applicable.
+
     #[error("[bowser/expand] element not expandable: {element_id}")]
     ExpandNotFound { element_id: u32 },
 
@@ -235,6 +239,8 @@ pub enum CliError {
 
 The CLI preserves Bowser library errors through `CliError::Bowser` and adds
 typed command-layer failures for output, REPL, and pointer-log handling.
+With `--json-envelope`, these variants map to the stable code enum and typed
+detail objects defined in [Checkpoints And Machine Output](checkpoints-and-machine-output.md).
 
 ## Dependencies
 
@@ -271,6 +277,7 @@ typed command-layer failures for output, REPL, and pointer-log handling.
 - **Config parsing**: test precedence rules, defaults, invalid config handling, and positive viewport dimensions after final config merging.
 - **Session lifecycle**: test session ID generation, path confinement, filename/document identity, metadata persistence, TTL expiry, dynamic debug-port handshake parsing, resume identity validation, fresh-launch rollback, stale-PID-safe cleanup through mocked process control, and owned-profile cleanup through mocked directory control.
 - **Session page management**: test stable page-ID assignment, selected-page persistence, legacy single-page metadata migration, and page-summary generation.
+- **Portable checkpoints**: test version validation, atomic round trips, cookie/localStorage/tab coverage, cross-profile restore, and continued source-session use after live export.
 - **Truncation logic**: test preview limits for lists, tables, and container children, plus emitted `truncation` metadata.
 - **Stealth patch generation**: verify the JS patches are syntactically valid.
 - **Expansion handling**: test expandable-element ID assignment, invalid-element-ID errors, and full-node expansion after truncated capture.
@@ -289,6 +296,7 @@ Unit tests focus on pure helpers, serialization, config merging, session persist
 - Verify a post-launch `bowser get` failure still detaches, reports its resumable session ID, and allows explicit cleanup of the owned ephemeral profile.
 - Verify resumed capture and interaction output failures plus page-management operation failures still detach, mark persisted captures stale, and retain the original command error.
 - Verify multi-page flows: list pages, create a new page, switch pages, close pages, and preserve the selected page across detach/resume.
+- Verify machine envelopes parse as one JSON document for success, runtime failure, argument failure, capture, session, capability, and checkpoint commands.
 - Verify long lists/tables are truncated in normal capture output and can be fully retrieved with `bowser expand`.
 - Verify compact YAML omits link/image deferred metadata in default output, labels images from `alt` plus filename, and only shows `describable: true` when AI is currently available.
 - Verify `bowser meta` retrieves deferred metadata on demand while also reporting live visibility details.

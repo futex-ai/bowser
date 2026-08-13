@@ -12,6 +12,7 @@ Spec pages:
 - [YAML Representation](./yaml-representation.md)
 - [YAML Examples And Flattening](./yaml-examples-and-flattening.md)
 - [CLI Interface](./cli-interface.md)
+- [Checkpoints And Machine Output](./checkpoints-and-machine-output.md)
 - [Interactive REPL](./interactive-repl.md)
 - [Google Smoke Results](./google-smoke-results.md)
 - [Library Overview](./library-overview.md)

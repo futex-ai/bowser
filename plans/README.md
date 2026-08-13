@@ -4,7 +4,7 @@ Implementation plans are added here only with explicit user consent.
 
 ## Active
 
-No active plans.
+- [Firna Browser Driver](./firna-browser-driver.md)
 
 ## Completed
 

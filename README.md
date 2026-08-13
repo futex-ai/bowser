@@ -11,6 +11,8 @@ resumable multi-page browser sessions.
 - Navigate, click, type, submit, scroll, screenshot, and download through Chrome
 - Address captured elements with stable IDs within each capture
 - Manage several live pages in one detached session
+- Export portable cookie/localStorage/tab checkpoints and restore them into fresh sessions
+- Emit a versioned one-object JSON command envelope for platform integrations
 - Run an interactive REPL with command completion and resumable state
 - Optionally describe captured images with Anthropic, OpenAI, or Ollama
 
@@ -59,6 +61,15 @@ bowser capture --session <SESSION_ID>
 bowser session close <SESSION_ID>
 ```
 
+Export and restore portable login state, or inspect the installed integration
+contract:
+
+```bash
+bowser session export --session <SESSION_ID> --to checkpoint.json
+bowser session restore --from checkpoint.json
+bowser --json-envelope capabilities
+```
+
 Resumed capture, interaction, and page-management commands re-detach before
 reporting operation, rendering, or output failures, so persisted page state is
 left ready for the next command.
@@ -91,6 +102,10 @@ Bowser reads `~/.config/bowser/config.yaml` by default. Command-line flags and
 `BOWSER_*` environment variables override file settings. The
 [configuration protocol](docs/protocol/bowser/implementation-and-config.md)
 defines the supported keys and precedence.
+Caller Chrome arguments are appended after Bowser's stealth-managed arguments;
+Chrome's last-value behavior therefore applies, except
+`--remote-debugging-port` and `--user-data-dir`, which Bowser rejects because
+they define session identity and ownership.
 
 ## Development
 

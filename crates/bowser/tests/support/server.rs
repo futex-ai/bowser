@@ -12,14 +12,16 @@ use tokio::sync::Mutex;
 
 use super::fixtures::{
     anthropic_mock, anthropic_pixel_mock, aria_hidden_visible_page, automation_globals_page,
-    chatty_page, checkerboard_image, click_reveals_images_page, counter_page,
-    delayed_redirect_page, download_cookie_page, download_cookie_report, download_redirect,
-    download_report, dynamic_page, help_page, iframe_checkbox_child_page, iframe_child_page,
-    iframe_form_child_page, iframe_image_child_page, iframe_parent_external_page,
-    iframe_parent_page, image_page, item_page, keyboard_shortcuts_page, long_page,
-    modal_overlay_page, mouse_click_page, next_page, orders_long_page, profile_state_page,
-    red_vector_image, simple_page, slow_anthropic_mock, slow_data, slow_history_page, slow_page,
-    slow_redirect, submit_page, wheel_page,
+    chatty_page, checkerboard_image, click_reveals_images_page, delayed_redirect_page,
+    download_cookie_page, download_cookie_report, download_redirect, download_report, dynamic_page,
+    help_page, iframe_checkbox_child_page, iframe_child_page, iframe_form_child_page,
+    iframe_image_child_page, iframe_parent_external_page, iframe_parent_page, image_page,
+    item_page, long_page, modal_overlay_page, next_page, orders_long_page, red_vector_image,
+    simple_page, slow_anthropic_mock, slow_data, slow_history_page, slow_page, slow_redirect,
+};
+use super::state_fixtures::{
+    checkpoint_state_page, counter_page, keyboard_shortcuts_page, mouse_click_page,
+    profile_state_page, submit_page, wheel_page,
 };
 
 pub struct TestServer {
@@ -88,6 +90,7 @@ pub async fn spawn_server() -> TestServer {
         .route("/mouse-click", get(mouse_click_page))
         .route("/keyboard-shortcuts", get(keyboard_shortcuts_page))
         .route("/counter", get(counter_page))
+        .route("/checkpoint-state", get(checkpoint_state_page))
         .route("/wheel-page", get(wheel_page))
         .route("/submit-page", get(submit_page))
         .route("/profile-state", get(profile_state_page))

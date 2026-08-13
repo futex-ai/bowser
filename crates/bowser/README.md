@@ -6,6 +6,7 @@ Core library for launching Chrome, capturing rendered pages into Bowser’s stru
 
 - Browser lifecycle and detached sessions
 - Multi-page session selection and creation
+- Live portable checkpoint export and fresh-session restore
 - DOM capture and structured page model
 - Compact YAML and JSON serialization
 - Deferred metadata, runtime element introspection, and truncated-node expansion
@@ -31,13 +32,18 @@ let page = browser.current_page().await?;
 page.navigate("https://example.com").await?;
 let capture = page.capture().await?;
 println!("{}", to_yaml(&capture)?);
+
+let checkpoint = browser.export_checkpoint().await?;
+let restored = Browser::restore(BrowserConfig::default(), checkpoint).await?;
+restored.detach().await?;
 # Ok(())
 # }
 ```
 
 ## Public Surface
 
-- `Browser` / `BrowserEngine`: launch, resume, list/select/create/close session pages, detach, and close browser sessions
+- `Browser` / `BrowserEngine`: launch, resume, list/select/create/close session pages, export portable checkpoints, detach, and close browser sessions
+- `SessionCheckpoint`, `read_checkpoint`, and `write_checkpoint`: typed plaintext checkpoint v1 data and atomic JSON file I/O; `Browser::restore` always creates a new Bowser-owned session/profile
 - `PageEngine`: navigation, capture, full rendered HTML, interaction, screenshots, browser-native downloads, metadata, on-demand image description, and expansion
 - `BrowserConfig`: merged runtime configuration used by both CLI and tests
 - `SessionStore` / `SessionMetadata`: detached-session persistence boundary and stored session shape for callers that want DB-backed metadata
@@ -85,6 +91,8 @@ cargo xtask check
 - `Browser::launch_with_store` lets callers supply a custom `Arc<dyn SessionStore>` so session metadata can live outside the filesystem; `config.session.dir` still provides the default profile-root path for browser data when `user_data_dir` is not set
 - `cleanup_expired_sessions` accepts that trusted session root explicitly, while `SessionMetadata::owns_user_data_dir` keeps explicit and persistent profiles outside Bowser's deletion boundary
 - Fresh sessions create and select a Bowser-owned blank page target instead of reusing Chrome's startup target, close the unmanaged startup blank once the owned target exists, and validate the CDP target session before returning a live page
+- Checkpoint v1 captures all browser-context cookies (including HttpOnly), localStorage for HTTP(S) origins represented by open tabs, ordered tab URLs, and the selected tab. It intentionally excludes IndexedDB, sessionStorage, service workers, cache state, history stacks, and arbitrary profile files; see the protocol contract for the complete boundary.
+- Live checkpoint export reads CDP state without copying the active profile and leaves the source session usable. Restore ignores source host identity and always creates a fresh ephemeral Bowser-owned profile, even when the supplied config requests a persistent or explicit profile.
 - Detached session metadata now stores per-page records with stable Bowser page IDs such as `pg_1` plus a typed page record (`tab` today); legacy single-page metadata is migrated forward on load
 - The selected page ID is persisted in session metadata so resume, `page select`, `page new`, and `page close` all reattach to the expected page
 - Live page inventory bounds URL/title probes and falls back to stored metadata, so stale Chromium targets after page close do not stall page selection
@@ -108,6 +116,7 @@ cargo xtask check
 - `src/model/mod.rs`
 - `src/page/mod.rs`
 - `src/capture/mod.rs`
+- `src/checkpoint/mod.rs`
 - `src/mouse/mod.rs`
 - `src/session/mod.rs`
 - `src/yaml/mod.rs`

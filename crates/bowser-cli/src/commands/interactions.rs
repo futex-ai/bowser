@@ -7,22 +7,32 @@ use bowser::{Browser, BrowserEngine, PageEngine, ScrollTarget};
 use crate::error::{CliError, Result};
 use crate::{ElementActionArgs, KeyArgs, PageFormat, ScrollArgs, TypeArgs};
 
-use super::{render_page, write_output};
+use super::page_output;
+use crate::output::{CommandContext, CommandOutput};
 
 /// Clicks an element and prints an updated capture.
-pub async fn click(config: &bowser::BrowserConfig, args: ElementActionArgs) -> Result<()> {
+pub async fn click(
+    config: &bowser::BrowserConfig,
+    args: ElementActionArgs,
+    context: &mut CommandContext,
+) -> Result<CommandOutput> {
     execute(
         config,
         Interaction::Click(args.element_id),
         args.page_id,
         args.output,
         args.format,
+        context,
     )
     .await
 }
 
 /// Types into an element and prints an updated capture.
-pub async fn type_text(config: &bowser::BrowserConfig, args: TypeArgs) -> Result<()> {
+pub async fn type_text(
+    config: &bowser::BrowserConfig,
+    args: TypeArgs,
+    context: &mut CommandContext,
+) -> Result<CommandOutput> {
     execute(
         config,
         Interaction::TypeText {
@@ -32,48 +42,68 @@ pub async fn type_text(config: &bowser::BrowserConfig, args: TypeArgs) -> Result
         args.page_id,
         args.output,
         args.format,
+        context,
     )
     .await
 }
 
 /// Clears an element and prints an updated capture.
-pub async fn clear(config: &bowser::BrowserConfig, args: ElementActionArgs) -> Result<()> {
+pub async fn clear(
+    config: &bowser::BrowserConfig,
+    args: ElementActionArgs,
+    context: &mut CommandContext,
+) -> Result<CommandOutput> {
     execute(
         config,
         Interaction::Clear(args.element_id),
         args.page_id,
         args.output,
         args.format,
+        context,
     )
     .await
 }
 
 /// Submits an element and prints an updated capture.
-pub async fn submit(config: &bowser::BrowserConfig, args: ElementActionArgs) -> Result<()> {
+pub async fn submit(
+    config: &bowser::BrowserConfig,
+    args: ElementActionArgs,
+    context: &mut CommandContext,
+) -> Result<CommandOutput> {
     execute(
         config,
         Interaction::Submit(args.element_id),
         args.page_id,
         args.output,
         args.format,
+        context,
     )
     .await
 }
 
 /// Sends one key press and prints an updated capture.
-pub async fn key(config: &bowser::BrowserConfig, args: KeyArgs) -> Result<()> {
+pub async fn key(
+    config: &bowser::BrowserConfig,
+    args: KeyArgs,
+    context: &mut CommandContext,
+) -> Result<CommandOutput> {
     execute(
         config,
         Interaction::Key(args.key),
         args.page_id,
         args.output,
         args.format,
+        context,
     )
     .await
 }
 
 /// Scrolls a page or element and prints an updated capture.
-pub async fn scroll(config: &bowser::BrowserConfig, args: ScrollArgs) -> Result<()> {
+pub async fn scroll(
+    config: &bowser::BrowserConfig,
+    args: ScrollArgs,
+    context: &mut CommandContext,
+) -> Result<CommandOutput> {
     let target = scroll_target(&args)?;
     execute(
         config,
@@ -81,6 +111,7 @@ pub async fn scroll(config: &bowser::BrowserConfig, args: ScrollArgs) -> Result<
         args.page_id,
         args.output,
         args.format,
+        context,
     )
     .await
 }
@@ -106,14 +137,23 @@ async fn execute(
     page_id: Option<String>,
     output: Option<PathBuf>,
     format: PageFormat,
-) -> Result<()> {
+    context: &mut CommandContext,
+) -> Result<CommandOutput> {
     let browser = launch_session(config).await?;
-    let operation_result =
-        perform(browser.as_ref(), &interaction, page_id.as_deref(), format).await;
+    context.update_session(&browser.session_info().await?);
+    let operation_result = perform(
+        browser.as_ref(),
+        &interaction,
+        page_id.as_deref(),
+        format,
+        output.as_deref(),
+    )
+    .await;
     let detach_result = browser.detach().await;
     let rendered = operation_result?;
+    context.update_session(&browser.session_info().await?);
     detach_result?;
-    write_output(output.as_deref(), &rendered).await
+    Ok(rendered)
 }
 
 async fn perform(
@@ -121,7 +161,8 @@ async fn perform(
     interaction: &Interaction,
     page_id: Option<&str>,
     format: PageFormat,
-) -> Result<String> {
+    output: Option<&std::path::Path>,
+) -> Result<CommandOutput> {
     let page = selected_page(browser, page_id).await?;
     match interaction {
         Interaction::Click(element_id) => page.click(*element_id).await?,
@@ -133,7 +174,7 @@ async fn perform(
         Interaction::Key(key) => page.press_keys(std::slice::from_ref(key)).await?,
         Interaction::Scroll(target) => page.scroll(target.clone()).await?,
     }
-    render_page(page.as_ref(), format).await
+    page_output(page.as_ref(), format, output).await
 }
 
 enum Interaction {

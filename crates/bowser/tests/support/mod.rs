@@ -4,6 +4,7 @@ mod config;
 mod fixtures;
 mod guard;
 mod server;
+mod state_fixtures;
 
 #[allow(unused_imports)]
 pub(crate) use self::config::{BROWSER_TEST_TIMEOUT, chrome_path, test_config};

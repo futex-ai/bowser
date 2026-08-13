@@ -11,6 +11,7 @@ pub trait BrowserEngine: Send + Sync {
     async fn select_page(&self, page_id: &str) -> Result<Box<dyn PageEngine>>;
     async fn new_page(&self, url: Option<&str>) -> Result<Box<dyn PageEngine>>;
     async fn close_page(&self, page_id: Option<&str>) -> Result<Box<dyn PageEngine>>;
+    async fn export_checkpoint(&self) -> Result<SessionCheckpoint>;
     async fn detach(&self) -> Result<()>;
     async fn close(&self) -> Result<()>;
 }
@@ -55,6 +56,13 @@ pub enum ScrollTarget {
     ToElement(u32),
 }
 ```
+
+`Browser::restore(config, checkpoint)` is the fresh-session composition
+boundary. It validates checkpoint v1, ignores source-host identity, forces a
+new Bowser-owned ephemeral profile, and returns the newly created `Browser`.
+`read_checkpoint` and `write_checkpoint` provide validated, atomic plaintext
+JSON file I/O; coverage and exclusions are defined in
+[Checkpoints And Machine Output](checkpoints-and-machine-output.md).
 
 `PageEngine::download` is browser-native. It runs through Chrome's current
 session state, so redirects, cookies, authentication, and
@@ -192,6 +200,10 @@ pub fn to_json(capture: &PageCapture) -> Result<String>;
 
 /// Deserialize a PageCapture from explicit JSON.
 pub fn from_json(json: &str) -> Result<PageCapture>;
+
+/// Read or atomically write a validated checkpoint v1 JSON document.
+pub fn read_checkpoint(path: &Path) -> Result<SessionCheckpoint>;
+pub fn write_checkpoint(path: &Path, checkpoint: &SessionCheckpoint) -> Result<()>;
 
 /// Serialize an image description to YAML.
 pub fn image_description_to_yaml(description: &ImageDescription) -> Result<String>;
