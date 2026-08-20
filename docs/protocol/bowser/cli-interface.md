@@ -54,8 +54,9 @@ would break session identity and ownership. This makes conflicts explicit;
 arguments are never silently dropped. Network-hardening options such as
 `--webrtc-ip-handling-policy=disable_non_proxied_udp` pass through unchanged.
 When the caller supplies `--kiosk`, Bowser omits its own window geometry and
-mode defaults. The current desktop accelerator limitation keeps
-`features.kiosk` false; see
+mode defaults. `features.kiosk_launch` advertises this verified launch and
+fullscreen page-workflow contract. The current desktop accelerator limitation
+keeps the separate `features.kiosk` flag false; see
 [Kiosk Launch, History, And Live Inventory](./kiosk-history-and-live-inventory.md).
 
 The platform-default config file is optional when `--config` is omitted. When `--config <PATH>` is supplied, that exact file must exist and any missing-file, read, parse, or validation failure is reported with the selected path.
@@ -465,6 +466,8 @@ invocation.
 Print the installed Bowser version, supported envelope/checkpoint versions,
 and feature flags. Plain mode prints the capability object as JSON; with
 `--json-envelope`, it is the command-specific `result` in envelope version 1.
-`history` and `live_inventory` are currently true. `kiosk` remains false until
-desktop Chrome's tab/window accelerator contract is locked, and
-`window_target` remains false because no window query command exists.
+`kiosk_launch`, `history`, and `live_inventory` are currently true. Callers
+must gate appending `--kiosk` on `kiosk_launch`, not on a Bowser version.
+`kiosk` remains false until desktop Chrome's tab/window accelerator contract
+is locked, and `window_target` remains false because no window query command
+exists.

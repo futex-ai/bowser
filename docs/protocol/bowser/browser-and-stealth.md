@@ -42,8 +42,8 @@ Detached metadata persists the assigned HTTP and WebSocket endpoints. A dynamic-
 Caller Chrome arguments are forwarded after Bowser defaults. When the caller
 includes `--kiosk`, Bowser omits its own window geometry and window-mode flags
 so Chrome and the display own fullscreen sizing. The fixed-display behavior,
-native accelerator matrix, and reason `features.kiosk` remains false are
-defined in
+native accelerator matrix, `features.kiosk_launch` handshake, and reason the
+separate `features.kiosk` flag remains false are defined in
 [Kiosk Launch, History, And Live Inventory](./kiosk-history-and-live-inventory.md).
 
 ## Stealth

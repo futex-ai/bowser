@@ -22,6 +22,7 @@ fn capabilities_and_argument_errors_are_single_json_documents() {
     );
     assert_eq!(envelope["result"]["features"]["checkpoint"], true);
     assert_eq!(envelope["result"]["features"]["kiosk"], false);
+    assert_eq!(envelope["result"]["features"]["kiosk_launch"], true);
     assert_eq!(envelope["result"]["features"]["history"], true);
     assert_eq!(envelope["result"]["features"]["live_inventory"], true);
     assert_eq!(envelope["result"]["features"]["window_target"], false);

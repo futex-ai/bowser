@@ -149,6 +149,7 @@ plain JSON for easy template inspection:
   "features": {
     "checkpoint": true,
     "kiosk": false,
+    "kiosk_launch": true,
     "history": true,
     "live_inventory": true,
     "window_target": false
@@ -157,6 +158,9 @@ plain JSON for easy template inspection:
 ```
 
 `version` is the installed CLI package version. Feature booleans describe the
-current binary honestly. History verbs and read-only live inventory are
-available. Desktop Chrome's unlocked tab/window kiosk accelerators and deferred
-window-target reporting keep `kiosk` and `window_target` false respectively.
+current binary honestly. Verified caller-requested kiosk launch, history
+verbs, and read-only live inventory are available. Desktop Chrome's unlocked
+tab/window kiosk accelerators and deferred window-target reporting keep
+`kiosk` and `window_target` false respectively. Consumers must detect
+`kiosk_launch` directly before appending `--kiosk`; package versions are not a
+feature gate across mixed template releases.

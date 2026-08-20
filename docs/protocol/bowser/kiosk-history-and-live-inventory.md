@@ -9,12 +9,16 @@ Chrome kiosk launch, one-shot history commands, and live session inventory.
 
 | Feature | Current value | Meaning |
 |---|---:|---|
-| `features.kiosk` | `false` | Desktop Chrome does not yet meet the required locked-keyboard kiosk contract. Callers must not append `--kiosk` based on Bowser capability detection. |
+| `features.kiosk_launch` | `true` | Caller Chrome-argument precedence, kiosk conflict suppression, fixed-display fullscreen page workflows, and content-tab discovery through live inventory are verified. A platform that filters takeover input may append `--kiosk` when this exact flag is true. |
+| `features.kiosk` | `false` | Desktop Chrome does not yet meet the separate locked-accelerator contract. This flag is reserved for a future launch mode that provides that lock itself. |
 | `features.history` | `true` | The one-shot `back`, `forward`, and `reload` commands and typed exhaustion result are available. |
 | `features.live_inventory` | `true` | `session info` reads the current live page inventory without activating a page. |
 
 Feature values describe the installed binary, are additive, and may change
-independently in later releases.
+independently in later releases. Consumers must gate kiosk launch on
+`features.kiosk_launch` itself, never on the package version or the value of a
+different feature. An older mixed-template binary that omits the field does
+not advertise this contract.
 
 ## Caller-Requested Desktop Kiosk Launch
 
@@ -22,6 +26,11 @@ Bowser forwards caller Chrome arguments after its own baseline and stealth
 arguments. Chrome's normal last-occurrence behavior therefore gives caller
 values precedence. Bowser rejects only the remote-debugging and user-data-dir
 switches it owns for session identity.
+
+`features.kiosk_launch: true` covers this forwarding and precedence rule, the
+geometry-conflict suppression below, the verified fullscreen page workflows,
+and content-tab discovery through `features.live_inventory`. It does not claim
+that native Chrome blocks takeover accelerators.
 
 When caller arguments contain `--kiosk`, Bowser does not add any of these
 window geometry or mode defaults:
@@ -52,28 +61,51 @@ that target and raises the selected page. Exactly one live page record matches
 ### Desktop Chrome accelerator matrix
 
 The matrix below records native Linux desktop Chrome behavior under `--kiosk`
-with raw X keyboard input:
+with raw X keyboard input. The chords were injected into real headed Chrome on
+the same fixed 1024×768 X display used by the kiosk integration test. Bowser
+was detached while input was sent; subsequent live inventory reads observed
+tab creation, removal, focus, and selection. X root-window state and byte-for-
+byte screen captures checked F11.
 
-| Accelerator | Native result |
-|---|---|
-| F5 | Reloads the page. |
-| Ctrl+R | Reloads the page. |
-| Alt+Left | Traverses backward when an entry exists. |
-| Alt+Right | Traverses forward when an entry exists. |
-| Ctrl+F | Opens Chrome's find overlay. |
-| Ctrl+L | Does not expose or focus the hidden omnibox. |
-| Ctrl+T | Opens a new tab. |
-| Ctrl+W | Closes the active tab or window. |
-| Ctrl+N | Opens another Chrome window. |
+The filter action is the stable takeover policy paired with
+`features.kiosk_launch`. `Block` means the platform must intercept the chord
+before Chrome. `Allow` means the chord does not break containment in the
+verified workflow:
+
+| Accelerator | Native result | Filter action |
+|---|---|---|
+| F5 | Reloads the page. | Allow. |
+| Ctrl+R | Reloads the page. | Allow. |
+| Alt+Left | Traverses backward when an entry exists. | Allow. |
+| Alt+Right | Traverses forward when an entry exists. | Allow. |
+| Ctrl+F | Opens Chrome's find overlay. | Allow. |
+| Ctrl+L | Does not expose or focus the hidden omnibox. | Allow; observed inert. |
+| Ctrl+T | Opens and selects a new tab. | Block. |
+| Ctrl+Shift+T | Reopens and selects the most recently closed tab. Live inventory removes the closed target and discovers it again after reopening. | Block. |
+| Ctrl+W | Closes the active tab, or the window when it is the last tab. | Block. |
+| Ctrl+Shift+W | Closes the complete kiosk window and ends the browser session. | Block. |
+| Ctrl+N | Opens another Chrome window. | Block. |
+| Ctrl+Shift+N | Opens and focuses a second, non-fullscreen incognito window whose new-tab target appears in live inventory. | Block; this is the highest-risk browser escape. |
+| Ctrl+Tab | Selects the next tab; the next live inventory read reconciles `selected_page_id` to it without activation. | Allow; safe when user tab switching is intended. |
+| Ctrl+Shift+Tab | Selects the previous tab with the same live-inventory reconciliation. | Allow; safe when user tab switching is intended. |
+| F11 | Has no observed effect: the window remains fullscreen and the screen capture is unchanged. | Block defensively because it is a window-mode command outside the launch capability contract. |
+| Ctrl+P | Opens and selects Chrome's `chrome://print/` preview target over the page. | Block. |
+
+Allowing Ctrl+Tab and Ctrl+Shift+Tab is coherent with
+`features.live_inventory`: the active content tab changes, and the next
+side-effect-free `session info` poll reports that tab as selected. A platform
+that intentionally freezes takeover to one tab may still block the chords as
+a product policy; blocking is not required for kiosk containment or Bowser
+selection correctness.
 
 Chromium's
 [desktop switch definition](https://chromium.googlesource.com/chromium/src/+/HEAD/chrome/common/chrome_switches.cc)
 explicitly describes `--kiosk` as distinct from ChromeOS kiosk mode. Because
-Ctrl+T, Ctrl+W, and Ctrl+N remain active, Bowser must keep
-`features.kiosk` false even though launch passthrough and fullscreen page
-workflows work. A platform that filters raw takeover input may use the launch
-behavior deliberately, but it must not infer the locked accelerator contract
-from this release's capability response.
+tab and window accelerators remain active, Bowser keeps `features.kiosk`
+false. The independently verified launch and page-workflow contract is
+reported as `features.kiosk_launch: true`. A platform that applies the filter
+policy above may deliberately use that launch behavior, but it must not infer
+a locked accelerator contract or gate behavior on Bowser version numbers.
 
 ## One-Shot History Commands
 

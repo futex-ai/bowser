@@ -17,6 +17,7 @@ struct Capabilities {
 struct Features {
     checkpoint: bool,
     kiosk: bool,
+    kiosk_launch: bool,
     history: bool,
     live_inventory: bool,
     window_target: bool,
@@ -30,6 +31,7 @@ pub(crate) fn run() -> Result<CommandOutput> {
         features: Features {
             checkpoint: true,
             kiosk: false,
+            kiosk_launch: true,
             history: true,
             live_inventory: true,
             window_target: false,

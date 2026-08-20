@@ -112,8 +112,10 @@ Chrome's last-value behavior therefore applies, except
 `--remote-debugging-port` and `--user-data-dir`, which Bowser rejects because
 they define session identity and ownership.
 Caller `--kiosk` also suppresses Bowser's window-mode and geometry defaults.
-Desktop Chrome still leaves Ctrl+T, Ctrl+W, and Ctrl+N active, so
-`features.kiosk` remains false; the
+This launch contract is advertised as `features.kiosk_launch: true`, which is
+the only supported gate for callers appending `--kiosk`. Desktop Chrome still
+leaves tab and window accelerators active, so the separate `features.kiosk`
+locked-input contract remains false; the
 [kiosk protocol](docs/protocol/bowser/kiosk-history-and-live-inventory.md)
 records the supported launch behavior and accelerator matrix.
 
