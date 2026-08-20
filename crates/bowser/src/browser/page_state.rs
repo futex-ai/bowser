@@ -53,6 +53,18 @@ pub(super) async fn live_page_title(
     .await
 }
 
+pub(super) async fn live_page_focused(page: &chromiumoxide::Page) -> bool {
+    let focused = tokio::time::timeout(PAGE_STATE_READ_TIMEOUT, async {
+        page.evaluate("document.visibilityState === 'visible' && document.hasFocus()")
+            .await
+            .ok()?
+            .into_value::<bool>()
+            .ok()
+    })
+    .await;
+    matches!(focused, Ok(Some(true)))
+}
+
 #[cfg(test)]
 #[path = "_tests_/page_state_tests.rs"]
 mod page_state_tests;

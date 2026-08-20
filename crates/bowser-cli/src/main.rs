@@ -10,7 +10,7 @@ mod output;
 mod url;
 
 pub use self::args::{
-    CaptureArgs, DescribeArgs, DownloadArgs, ElementActionArgs, ExpandArgs, GetArgs,
+    CaptureArgs, DescribeArgs, DownloadArgs, ElementActionArgs, ExpandArgs, GetArgs, HistoryArgs,
     InteractiveArgs, KeyArgs, MetaArgs, PageSubcommand, PointerLogArgs, ScrollArgs,
     SessionSubcommand, TypeArgs,
 };

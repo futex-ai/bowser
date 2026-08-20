@@ -75,6 +75,29 @@ fn xvfb_stealth_launch_uses_configured_window_size() {
 }
 
 #[test]
+fn kiosk_launch_omits_bowser_window_mode_defaults() {
+    let config = BrowserConfig {
+        chrome_args: vec!["--kiosk".to_string()],
+        ..BrowserConfig::default()
+    };
+    let args = build_chrome_args(&config, PathBuf::from("/tmp/profile").as_path(), true);
+
+    assert!(args.iter().any(|arg| arg == "--kiosk"));
+    for conflicting_prefix in [
+        "--start-maximized",
+        "--window-size",
+        "--window-position",
+        "--start-fullscreen",
+        "--app",
+    ] {
+        assert!(
+            !args.iter().any(|arg| arg.starts_with(conflicting_prefix)),
+            "Bowser emitted {conflicting_prefix} alongside kiosk mode: {args:?}"
+        );
+    }
+}
+
+#[test]
 fn stealth_launch_adds_automation_control_flag() {
     let config = BrowserConfig::default();
     let args = build_chrome_args(&config, PathBuf::from("/tmp/profile").as_path(), false);

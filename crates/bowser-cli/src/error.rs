@@ -212,6 +212,17 @@ fn bowser_error_code_and_detail(error: &bowser::Error) -> (&'static str, serde_j
             serde_json::json!({ "element_id": element_id }),
         ),
         Error::Navigation { url } => ("navigation", serde_json::json!({ "url": url })),
+        Error::HistoryRead { .. } | Error::HistoryNavigation { .. } => {
+            ("cdp", serde_json::json!({}))
+        }
+        Error::HistoryBackExhausted => (
+            "history_exhausted",
+            serde_json::json!({ "direction": "back" }),
+        ),
+        Error::HistoryForwardExhausted => (
+            "history_exhausted",
+            serde_json::json!({ "direction": "forward" }),
+        ),
         Error::Timeout { seconds } => ("timeout", serde_json::json!({ "seconds": seconds })),
         Error::ElementNotFound { element_id } => (
             "element_not_found",

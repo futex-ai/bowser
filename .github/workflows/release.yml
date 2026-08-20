@@ -46,7 +46,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libasound2-dev shellcheck xvfb
+          sudo apt-get install -y libasound2-dev metacity shellcheck xvfb
           command -v google-chrome || command -v chromium || command -v chromium-browser
 
       - name: Install Rust toolchain

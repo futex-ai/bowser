@@ -36,6 +36,7 @@ bowser --json-envelope capabilities
 - `bowser --headed --persistent-profile <URL>`: use a visible Chrome window and Bowser's stable default profile path
 - `bowser --no-ai -i https://www.google.com`: run the default stealth Google smoke flow with headed Chrome, full JS DOM capture, backend-node text entry, and Runtime events left enabled
 - `bowser capture --session <ID> --format html|json|yaml`: recapture the selected or explicit `--page-id` page without navigating
+- `bowser back|forward|reload --session <ID>`: perform one history action on the selected or explicit `--page-id` page, then emit the normal capture/output envelope; exhausted back or forward returns `history_exhausted`
 - `bowser click|clear|submit --session <ID> <ELEMENT_ID>`: interact with a captured element and print an updated capture
 - `bowser type --session <ID> <ELEMENT_ID> <TEXT>` and `bowser key --session <ID> <KEY>`: send real browser input and print an updated capture
 - `bowser scroll --session <ID> --direction up|down` or `--element-id <ID>`: scroll the selected or explicit page and print an updated capture
@@ -47,11 +48,11 @@ bowser --json-envelope capabilities
 - `bowser meta --session <ID> <ELEMENT_ID>`: fetch metadata for any ID-bearing element, including current focus, live visibility details, page-space bounds, and `describable: true` for images when AI is available
 - `bowser describe --session <ID> <ELEMENT_ID>`: generate or print a cached AI description for an image by ID; uncached provider requests use the global `--timeout` deadline
 - `bowser page list|select|new|close --session <ID>`: inspect and manage multiple pages inside a detached session using stable page IDs such as `pg_1`
-- `bowser session list|info|close`: inspect and manage detached sessions
+- `bowser session list|info|close`: inspect and manage detached sessions; `session info` reads every live tab URL/title without activating a page and reports one unambiguous visible/focused tab as selected
 - `bowser session export --session <ID> --to <PATH>`: atomically write a portable plaintext JSON checkpoint while leaving the live session resumable
 - `bowser session restore --from <PATH>`: restore cookies, localStorage, tabs, and selection into a new Bowser-owned session
 - `bowser --json-envelope <COMMAND>`: emit exactly one versioned JSON object on stdout for every non-interactive command, with stable error codes and known session/page context; logs remain on stderr
-- `bowser capabilities`: report package version, envelope/checkpoint versions, and honest feature flags (`window_target` remains false)
+- `bowser capabilities`: report package version, envelope/checkpoint versions, and honest feature flags (`history` and `live_inventory` are true; `kiosk` and `window_target` remain false)
 - `bowser pointer-log --output browser-log`: serve a loopback-only local pointer telemetry page with one randomized target at a time and append captured events to a local JSONL file, defaulting to the gitignored `browser-log` in manual mode, without storing session IDs or user-agent strings; each newly placed target also writes a row with its viewport rect
 - `bowser pointer-log --demo`: launch headed Chrome, open the pointer telemetry page, and use Bowser's real pointer-click automation to move between targets until `Ctrl-C` or `--demo-clicks <N>`; demo mode only writes JSONL events when `--output` is provided
 - interactive `pages`, `page <PAGE_ID>`, `new page [URL]`, and `close page [PAGE_ID]`: inspect, switch, create, and close session pages from the REPL
@@ -100,6 +101,7 @@ BOWSER_GOOGLE_SMOKE=1 cargo test -p bowser-cli --test interactive_repl google_se
 - Bowser does not expose proxy transport. Use a VPN outside Bowser when browser traffic must leave through a different network route or IP address.
 - Browser-native downloads preserve Chrome session state such as redirects, cookies, authentication, and `Content-Disposition` handling.
 - Caller `--chrome-args` follow Chrome's last-argument-wins behavior after Bowser's stealth defaults, so flags such as `--webrtc-ip-handling-policy=disable_non_proxied_udp` reach Chrome unchanged. Bowser rejects caller `--remote-debugging-port` and `--user-data-dir` because those flags define its session identity and profile ownership.
+- Caller `--kiosk` suppresses Bowser's window-size and window-mode defaults, but desktop Chrome leaves Ctrl+T, Ctrl+W, and Ctrl+N active. The CLI therefore keeps `features.kiosk` false until the complete locked-accelerator contract is available.
 - Headed Linux sessions start Xvfb only when neither `DISPLAY` nor `WAYLAND_DISPLAY` is available; `session close` and expiry cleanup validate the stored Xvfb display before terminating the helper PID and remove only Bowser-owned ephemeral profiles.
 - Interactive runtime flow is split across [`src/commands/interactive/`](./src/commands/interactive), with command dispatch, page actions, capture fallback, and interrupt handling separated into focused modules
 - REPL parsing, suggestions, and prompt helpers live under [`src/commands/repl/`](./src/commands/repl), with command parsing separated from editor/completion behavior

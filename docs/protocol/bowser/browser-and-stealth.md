@@ -39,6 +39,13 @@ Fresh sessions launch Chrome with `--remote-debugging-port=0` so Chrome owns the
 
 Detached metadata persists the assigned HTTP and WebSocket endpoints. A dynamic-port session may be resumed or terminated only when the stored PID still has the dynamic-port and exact profile arguments and the profile handshake's current port matches the persisted HTTP endpoint. Legacy metadata whose Chrome process has the exact persisted fixed-port argument remains resumable.
 
+Caller Chrome arguments are forwarded after Bowser defaults. When the caller
+includes `--kiosk`, Bowser omits its own window geometry and window-mode flags
+so Chrome and the display own fullscreen sizing. The fixed-display behavior,
+native accelerator matrix, and reason `features.kiosk` remains false are
+defined in
+[Kiosk Launch, History, And Live Inventory](./kiosk-history-and-live-inventory.md).
+
 ## Stealth
 
 Bowser applies best-effort stealth measures to reduce common headless-browser fingerprints. The following patches are applied via `Page.addScriptToEvaluateOnNewDocument` before any page navigation:
@@ -77,6 +84,10 @@ The default identity is native Chrome plus narrow automation-leak cleanup.
 Native Chrome values are preferred over synthetic values. Any explicit
 non-native profile must generate all coupled fields from one typed profile and
 must update the browser identity diagnostic tests.
+
+Kiosk launch does not add a synthetic viewport identity or alter these patches.
+Native fullscreen `screen`, `inner`, and `outer` dimensions remain the browser
+identity source; no patch assumes that Chrome has a decorated window.
 
 With stealth enabled, Bowser uses the Google-safe headed feature set by
 default: headed Chrome, native window sizing on a real display, the

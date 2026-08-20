@@ -9,8 +9,10 @@ resumable multi-page browser sessions.
 - Launch or resume Chrome sessions and keep them available between commands
 - Capture rendered semantic content without CSS and layout noise
 - Navigate, click, type, submit, scroll, screenshot, and download through Chrome
+- Run one-shot back, forward, and reload actions with typed history exhaustion
 - Address captured elements with stable IDs within each capture
 - Manage several live pages in one detached session
+- Read live tab URLs and titles without changing page focus or activation
 - Export portable cookie/localStorage/tab checkpoints and restore them into fresh sessions
 - Emit a versioned one-object JSON command envelope for platform integrations
 - Run an interactive REPL with command completion and resumable state
@@ -21,6 +23,7 @@ resumable multi-page browser sessions.
 - Rust 1.89 or newer
 - Google Chrome or Chromium
 - Xvfb on Linux when headed mode is used without an existing display
+- Metacity for the fixed-display kiosk integration test
 - `actionlint` and ShellCheck when running the full development check locally
 
 Bowser discovers Chrome from the normal executable locations. Set
@@ -58,6 +61,8 @@ Resume a session and manage its pages:
 ```bash
 bowser page list --session <SESSION_ID>
 bowser capture --session <SESSION_ID>
+bowser back --session <SESSION_ID>
+bowser session info <SESSION_ID> --json-envelope
 bowser session close <SESSION_ID>
 ```
 
@@ -106,6 +111,11 @@ Caller Chrome arguments are appended after Bowser's stealth-managed arguments;
 Chrome's last-value behavior therefore applies, except
 `--remote-debugging-port` and `--user-data-dir`, which Bowser rejects because
 they define session identity and ownership.
+Caller `--kiosk` also suppresses Bowser's window-mode and geometry defaults.
+Desktop Chrome still leaves Ctrl+T, Ctrl+W, and Ctrl+N active, so
+`features.kiosk` remains false; the
+[kiosk protocol](docs/protocol/bowser/kiosk-history-and-live-inventory.md)
+records the supported launch behavior and accelerator matrix.
 
 ## Development
 

@@ -12,8 +12,9 @@ use crate::checkpoint::{
 use crate::error::{Error, Result};
 
 use super::super::engine::Browser;
+use super::super::page_selection::best_live_page_id;
 use super::super::page_state::live_page_url;
-use super::super::state::{LiveBrowserPage, best_live_page_id};
+use super::super::state::LiveBrowserPage;
 use super::http_origin;
 
 const LOCAL_STORAGE_SCRIPT: &str =
@@ -88,6 +89,7 @@ async fn checkpoint_pages(
             page,
             url,
             title: String::new(),
+            focused: false,
         });
     }
     if pages.is_empty() {

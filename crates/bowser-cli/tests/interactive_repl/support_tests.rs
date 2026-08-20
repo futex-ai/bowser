@@ -9,6 +9,10 @@ fn bowser_command_forces_headless_browser_defaults() {
 
     assert!(envs.contains(&(OsStr::new("BOWSER_HEADLESS"), Some(OsStr::new("true")))));
     assert!(envs.contains(&(
+        OsStr::new("BOWSER_CHROME_ARGS"),
+        Some(OsStr::new("--disable-dev-shm-usage"))
+    )));
+    assert!(envs.contains(&(
         OsStr::new("BOWSER_INTERNAL_STEALTH_FEATURES"),
         Some(OsStr::new("-launch-headed,-launch-native-window"))
     )));

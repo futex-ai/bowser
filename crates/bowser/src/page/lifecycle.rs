@@ -55,6 +55,16 @@ impl LivePage {
 
     pub(super) async fn persist_state(&self, requires_fresh_capture: bool) -> Result<()> {
         let state = self.state.lock().await;
+        let captured_url = state
+            .preview_capture
+            .as_ref()
+            .or(state.full_capture.as_ref())
+            .map(|capture| capture.url.clone());
+        let captured_title = state
+            .preview_capture
+            .as_ref()
+            .or(state.full_capture.as_ref())
+            .map(|capture| capture.title.clone());
         let mut metadata = self.store.load(&self.session_id).await?;
         let page =
             metadata
@@ -66,8 +76,12 @@ impl LivePage {
         page.full_capture = state.full_capture.clone();
         page.metadata_records = state.metadata_records.clone();
         page.requires_fresh_capture = requires_fresh_capture;
-        page.last_url = page.url();
-        page.last_title = page.title();
+        if captured_url.is_some() {
+            page.last_url = captured_url;
+        }
+        if captured_title.is_some() {
+            page.last_title = captured_title;
+        }
         metadata.updated_at = chrono::Utc::now();
         self.store.save(&metadata).await
     }

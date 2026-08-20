@@ -112,6 +112,9 @@ async fn execute(cli: Cli, context: &mut CommandContext) -> Result<CommandOutput
         Command::Submit(args) => commands::interactions::submit(&config, args, context).await,
         Command::Key(args) => commands::interactions::key(&config, args, context).await,
         Command::Scroll(args) => commands::interactions::scroll(&config, args, context).await,
+        Command::Back(args) => commands::history::back(&config, args, context).await,
+        Command::Forward(args) => commands::history::forward(&config, args, context).await,
+        Command::Reload(args) => commands::history::reload(&config, args, context).await,
         Command::Interactive(args) => {
             commands::interactive::run(config, args).await?;
             CommandOutput::result(serde_json::json!({}))

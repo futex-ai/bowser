@@ -160,6 +160,30 @@ pub enum Error {
     #[error("[bowser/page] navigation failed: {url}")]
     Navigation { url: String },
 
+    /// Chrome could not provide the selected page's navigation history.
+    #[error("[bowser/page/history] failed to read browser navigation history: {source}")]
+    HistoryRead {
+        /// CDP failure returned by the browser history read.
+        #[source]
+        source: chromiumoxide::error::CdpError,
+    },
+
+    /// Chrome rejected navigation to a browser-history entry.
+    #[error("[bowser/page/history] failed to navigate browser history: {source}")]
+    HistoryNavigation {
+        /// CDP failure returned by browser-owned history navigation.
+        #[source]
+        source: chromiumoxide::error::CdpError,
+    },
+
+    /// The selected page has no earlier browser-history entry.
+    #[error("[bowser/page] browser history is exhausted in the back direction")]
+    HistoryBackExhausted,
+
+    /// The selected page has no later browser-history entry.
+    #[error("[bowser/page] browser history is exhausted in the forward direction")]
+    HistoryForwardExhausted,
+
     #[error("[bowser/page] page load timed out after {seconds}s")]
     Timeout { seconds: u64 },
 

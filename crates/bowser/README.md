@@ -42,9 +42,9 @@ restored.detach().await?;
 
 ## Public Surface
 
-- `Browser` / `BrowserEngine`: launch, resume, list/select/create/close session pages, export portable checkpoints, detach, and close browser sessions
+- `Browser` / `BrowserEngine`: launch, resume, list/select/create/close session pages, read current live session metadata, export portable checkpoints, detach, and close browser sessions
 - `SessionCheckpoint`, `read_checkpoint`, and `write_checkpoint`: typed plaintext checkpoint v1 data and atomic JSON file I/O; `Browser::restore` always creates a new Bowser-owned session/profile
-- `PageEngine`: navigation, capture, full rendered HTML, interaction, screenshots, browser-native downloads, metadata, on-demand image description, and expansion
+- `PageEngine`: navigation with typed exhausted-history errors, capture, full rendered HTML, interaction, screenshots, browser-native downloads, metadata, on-demand image description, and expansion
 - `BrowserConfig`: merged runtime configuration used by both CLI and tests
 - `SessionStore` / `SessionMetadata`: detached-session persistence boundary and stored session shape for callers that want DB-backed metadata
 - `to_yaml`, `to_json`, `metadata_to_yaml`, `image_description_to_yaml`: display and machine-readable serialization helpers
@@ -77,7 +77,7 @@ cargo xtask check
 - `PageEngine::type_text`, `PageEngine::press_keys`, and `PageEngine::clear` now use real CDP keyboard input with fast randomized pauses instead of synthetic DOM keyboard events
 - `PageEngine::submit` prefers Enter on text-like controls or a real click on submit buttons before falling back to DOM form submission helpers
 - `PageEngine::scroll` sends browser mouse-wheel input for `Down` and `Up`, while `ScrollTarget::ToElement` remains a direct bring-into-view helper and routes through target-backed iframe documents when needed
-- `PageEngine::navigate` uses one bounded navigation deadline, marks cached captures and live element IDs stale before requesting document-changing navigation, uses browser navigation first on fresh pages so redirects can be correlated by main-frame loader, uses top-level location assignment first on resumed pages to avoid stale target-session navigation hangs, and verifies the destination document is ready before returning; back, forward, and reload use the same conservative stale-state boundary before they request history-script or reload work
+- `PageEngine::navigate` uses one bounded navigation deadline, marks cached captures and live element IDs stale before requesting document-changing navigation, uses browser navigation first on fresh pages so redirects can be correlated by main-frame loader, uses top-level location assignment first on resumed pages to avoid stale target-session navigation hangs, and verifies the destination document is ready before returning; back and forward preflight Chrome's navigation-history index and return typed exhaustion errors immediately, while reload uses the same conservative stale-state boundary
 - `PageEngine::wait_for_stable` starts with a network-aware quiet check but relaxes the network-idle requirement after a short grace period, so captures do not sit on pages with long-lived background requests
 - `PageEngine::click` prefers a pointer-driven browser click at a sampled 10px-inset target point for visible targets, shapes movement from the pointer telemetry fixture with randomized idle drift, coarse travel, approach, and micro-correction phases, carries the cursor across later visible clicks in the same live session, keeps text-entry targets focused for later keypresses, and falls back to `el.click()` when a target is not visibly clickable or the pointer path fails or stalls
 - `PageEngine::metadata` now works for any ID-bearing element and attaches current focus, live visibility/clickability state, page-space bounds, and current image-description capability from the current page
@@ -95,7 +95,8 @@ cargo xtask check
 - Live checkpoint export reads CDP state without copying the active profile and leaves the source session usable. Restore ignores source host identity and always creates a fresh ephemeral Bowser-owned profile, even when the supplied config requests a persistent or explicit profile.
 - Detached session metadata now stores per-page records with stable Bowser page IDs such as `pg_1` plus a typed page record (`tab` today); legacy single-page metadata is migrated forward on load
 - The selected page ID is persisted in session metadata so resume, `page select`, `page new`, and `page close` all reattach to the expected page
-- Live page inventory bounds URL/title probes and falls back to stored metadata, so stale Chromium targets after page close do not stall page selection
+- `BrowserEngine::live_session_metadata` reconciles every current Chrome page without activating a target; URL/title/focus probes run concurrently with one-second bounds and stored metadata fallback, an unambiguous visible/focused tab becomes selected, and frequent inventory reads do not stall on stale targets
+- Caller `--kiosk` disables Bowser's own window geometry/mode defaults and is covered on a fixed X display, but desktop Chrome still enables Ctrl+T, Ctrl+W, and Ctrl+N; consumers must treat the CLI's `features.kiosk: false` as authoritative
 - Config loading now lives under `src/config/`, session persistence under `src/session/`, runtime page orchestration under `src/page/`, page model types under `src/model/`, and YAML/JSON rendering under `src/yaml/`, so those support areas can evolve without growing new monolith files
 - The platform-default config file remains optional, while a path explicitly passed to `load_config` must exist and returns `ConfigFileNotFound` when it does not
 - Bowser's stealth behavior is intentionally conservative: native Chrome values are preferred, obvious automation leaks are cleaned, and any future non-native fingerprint profile must be designed and tested as one complete browser identity

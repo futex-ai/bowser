@@ -1,10 +1,13 @@
 //! Page selection and attachment helpers.
 
-use crate::error::{Error, Result};
+use crate::{
+    error::{Error, Result},
+    session::SessionMetadata,
+};
 
 use super::{
     engine::Browser,
-    state::{BrowserState, best_live_page_id, take_live_page_by_id},
+    state::{BrowserState, LiveBrowserPage},
 };
 
 impl Browser {
@@ -131,4 +134,54 @@ impl Browser {
         }
         Ok((page_id.to_string(), page.page))
     }
+}
+
+pub(super) fn best_live_page_id(
+    metadata: &SessionMetadata,
+    live_pages: &[LiveBrowserPage],
+) -> Option<String> {
+    let live_page_id = |page: &LiveBrowserPage| {
+        metadata
+            .page_by_target_id(&page.target_id)
+            .map(|record| record.id.clone())
+    };
+    if let Some(selected_page_id) = metadata.selected_page_id.as_deref()
+        && live_pages.iter().any(|page| {
+            metadata
+                .page_by_target_id(&page.target_id)
+                .is_some_and(|record| record.id == selected_page_id)
+        })
+    {
+        return Some(selected_page_id.to_string());
+    }
+    live_pages
+        .iter()
+        .find(|page| !page.url.is_empty() && page.url != "about:blank")
+        .and_then(live_page_id)
+        .or_else(|| live_pages.first().and_then(live_page_id))
+}
+
+pub(super) fn take_live_page_by_id(
+    metadata: &SessionMetadata,
+    live_pages: &mut Vec<LiveBrowserPage>,
+    page_id: &str,
+) -> Option<LiveBrowserPage> {
+    let index = live_pages.iter().position(|page| {
+        metadata
+            .page_by_target_id(&page.target_id)
+            .is_some_and(|record| record.id == page_id)
+    })?;
+    Some(live_pages.remove(index))
+}
+
+pub(super) fn page_target_id(
+    metadata: &SessionMetadata,
+    page_id: &str,
+    page: &chromiumoxide::Page,
+) -> String {
+    metadata
+        .page_by_id(page_id)
+        .map(|record| record.target_id.clone())
+        .filter(|target_id| !target_id.is_empty() && target_id != "legacy")
+        .unwrap_or_else(|| page.target_id().as_ref().to_string())
 }

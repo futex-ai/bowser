@@ -12,9 +12,9 @@ use crate::{
     model::{SessionInfo, SessionPageSummary},
     page::PageEngine,
     session::{
-        FileSessionStore, OwnedProfileGuard, SessionStore, cleanup_expired_sessions,
-        default_session_dir, remove_owned_session_profile, terminate_session_processes_and_wait,
-        validate_session_process_identity,
+        FileSessionStore, OwnedProfileGuard, SessionMetadata, SessionStore,
+        cleanup_expired_sessions, default_session_dir, remove_owned_session_profile,
+        terminate_session_processes_and_wait, validate_session_process_identity,
     },
 };
 
@@ -35,6 +35,8 @@ pub trait BrowserEngine: Send + Sync {
     async fn current_page(&self) -> Result<Box<dyn PageEngine>>;
     /// Lists the known live and stored page summaries for the session.
     async fn list_pages(&self) -> Result<Vec<SessionPageSummary>>;
+    /// Reads current metadata for every live page without activating a page.
+    async fn live_session_metadata(&self) -> Result<SessionMetadata>;
     /// Selects one known page by Bowser page identifier.
     async fn select_page(&self, page_id: &str) -> Result<Box<dyn PageEngine>>;
     /// Opens a new page and returns it as the selected page engine.
@@ -173,6 +175,10 @@ impl BrowserEngine for Browser {
 
     async fn list_pages(&self) -> Result<Vec<SessionPageSummary>> {
         self.list_pages_impl().await
+    }
+
+    async fn live_session_metadata(&self) -> Result<SessionMetadata> {
+        self.live_session_metadata_impl().await
     }
 
     async fn select_page(&self, page_id: &str) -> Result<Box<dyn PageEngine>> {

@@ -3,6 +3,7 @@
 use std::collections::HashSet;
 
 use chromiumoxide::browser::Browser as ChromiumBrowser;
+use futures::future::join_all;
 
 use crate::{
     error::{Error, Result},
@@ -11,7 +12,8 @@ use crate::{
 
 use super::{
     engine::Browser,
-    page_state::{live_page_title, live_page_url},
+    page_selection::best_live_page_id,
+    page_state::{live_page_focused, live_page_title, live_page_url},
 };
 
 #[derive(Debug)]
@@ -27,6 +29,7 @@ pub(super) struct LiveBrowserPage {
     pub(super) target_id: String,
     pub(super) url: String,
     pub(super) title: String,
+    pub(super) focused: bool,
 }
 
 impl Browser {
@@ -48,33 +51,21 @@ impl Browser {
             .fetch_targets()
             .await
             .map_err(|err| Error::cdp(format!("failed to fetch targets: {err}")))?;
-        for attempt in 0..20 {
+        let mut attempt = 0;
+        let pages = loop {
             let pages = state
                 .browser
                 .pages()
                 .await
                 .map_err(|err| Error::cdp(format!("failed to list pages: {err}")))?;
             if !pages.is_empty() || attempt == 19 {
-                let mut live_pages = collect_live_pages(state, pages).await;
-                self.add_known_live_pages(state, &mut live_pages).await?;
-                return Ok(live_pages);
+                break pages;
             }
+            attempt += 1;
             tokio::time::sleep(std::time::Duration::from_millis(100)).await;
-        }
-
-        let mut live_pages = Vec::new();
-        let target_ids: Vec<String> = state
-            .metadata
-            .pages
-            .iter()
-            .map(|page| page.target_id.clone())
-            .filter(|target_id| !target_id.is_empty() && target_id != "legacy")
-            .collect();
-        for target_id in target_ids {
-            if let Some(page) = self.lookup_page_by_target_id(state, &target_id).await? {
-                live_pages.push(build_live_browser_page(&state.metadata, page).await);
-            }
-        }
+        };
+        let mut live_pages = collect_live_pages(state, pages).await;
+        self.add_known_live_pages(state, &mut live_pages).await?;
         Ok(live_pages)
     }
 
@@ -98,7 +89,7 @@ impl Browser {
             if live_target_ids.contains(&target_id) {
                 continue;
             }
-            if let Some(page) = self.lookup_page_by_target_id(state, &target_id).await? {
+            if let Ok(page) = state.browser.get_page(target_id.clone().into()).await {
                 live_target_ids.insert(target_id);
                 live_pages.push(build_live_browser_page(&state.metadata, page).await);
             }
@@ -167,8 +158,38 @@ impl Browser {
             }
             matched_page_ids.insert(page.id.clone());
         }
-        if state.metadata.selected_page_id.is_none()
-            && let Some(page_id) = best_live_page_id(&state.metadata, &live_pages)
+        let selected_is_live =
+            state
+                .metadata
+                .selected_page_id
+                .as_deref()
+                .is_some_and(|selected_page_id| {
+                    live_pages.iter().any(|page| {
+                        state
+                            .metadata
+                            .page_by_target_id(&page.target_id)
+                            .is_some_and(|record| record.id == selected_page_id)
+                    })
+                });
+        let focused_page_ids = live_pages
+            .iter()
+            .filter(|page| page.focused)
+            .filter_map(|page| {
+                state
+                    .metadata
+                    .page_by_target_id(&page.target_id)
+                    .map(|record| record.id.clone())
+            })
+            .collect::<Vec<_>>();
+        let selected_page_id = if let [focused_page_id] = focused_page_ids.as_slice() {
+            Some(focused_page_id.clone())
+        } else if !selected_is_live {
+            best_live_page_id(&state.metadata, &live_pages)
+        } else {
+            None
+        };
+        if let Some(page_id) = selected_page_id
+            && state.metadata.selected_page_id.as_ref() != Some(&page_id)
         {
             state.metadata.selected_page_id = Some(page_id);
             changed = true;
@@ -199,11 +220,12 @@ async fn collect_live_pages(
     state: &BrowserState,
     pages: Vec<chromiumoxide::Page>,
 ) -> Vec<LiveBrowserPage> {
-    let mut live_pages = Vec::with_capacity(pages.len());
-    for page in pages {
-        live_pages.push(build_live_browser_page(&state.metadata, page).await);
-    }
-    live_pages
+    join_all(
+        pages
+            .into_iter()
+            .map(|page| build_live_browser_page(&state.metadata, page)),
+    )
+    .await
 }
 
 async fn build_live_browser_page(
@@ -217,64 +239,16 @@ async fn build_live_browser_page(
     let fallback_title = metadata
         .page_by_target_id(&target_id)
         .and_then(|record| record.title());
-    let (url, title) = tokio::join!(
+    let (url, title, focused) = tokio::join!(
         live_page_url(&page, fallback_url),
-        live_page_title(&page, fallback_title)
+        live_page_title(&page, fallback_title),
+        live_page_focused(&page)
     );
     LiveBrowserPage {
         target_id,
         page,
         url,
         title,
+        focused,
     }
-}
-
-pub(super) fn best_live_page_id(
-    metadata: &SessionMetadata,
-    live_pages: &[LiveBrowserPage],
-) -> Option<String> {
-    let live_page_id = |page: &LiveBrowserPage| {
-        metadata
-            .page_by_target_id(&page.target_id)
-            .map(|record| record.id.clone())
-    };
-    if let Some(selected_page_id) = metadata.selected_page_id.as_deref()
-        && live_pages.iter().any(|page| {
-            metadata
-                .page_by_target_id(&page.target_id)
-                .is_some_and(|record| record.id == selected_page_id)
-        })
-    {
-        return Some(selected_page_id.to_string());
-    }
-    live_pages
-        .iter()
-        .find(|page| !page.url.is_empty() && page.url != "about:blank")
-        .and_then(live_page_id)
-        .or_else(|| live_pages.first().and_then(live_page_id))
-}
-
-pub(super) fn take_live_page_by_id(
-    metadata: &SessionMetadata,
-    live_pages: &mut Vec<LiveBrowserPage>,
-    page_id: &str,
-) -> Option<LiveBrowserPage> {
-    let index = live_pages.iter().position(|page| {
-        metadata
-            .page_by_target_id(&page.target_id)
-            .is_some_and(|record| record.id == page_id)
-    })?;
-    Some(live_pages.remove(index))
-}
-
-pub(super) fn page_target_id(
-    metadata: &SessionMetadata,
-    page_id: &str,
-    page: &chromiumoxide::Page,
-) -> String {
-    metadata
-        .page_by_id(page_id)
-        .map(|record| record.target_id.clone())
-        .filter(|target_id| !target_id.is_empty() && target_id != "legacy")
-        .unwrap_or_else(|| page.target_id().as_ref().to_string())
 }

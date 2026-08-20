@@ -79,6 +79,9 @@ pub(crate) enum Command {
     Submit(ElementActionArgs),
     Key(KeyArgs),
     Scroll(ScrollArgs),
+    Back(HistoryArgs),
+    Forward(HistoryArgs),
+    Reload(HistoryArgs),
     Interactive(InteractiveArgs),
     PointerLog(PointerLogArgs),
     Page {
@@ -196,6 +199,16 @@ pub struct ScrollArgs {
     pub direction: Option<String>,
     #[arg(long)]
     pub element_id: Option<u32>,
+    #[arg(long)]
+    pub page_id: Option<String>,
+    #[arg(long)]
+    pub output: Option<PathBuf>,
+    #[arg(long, value_enum, default_value_t = PageFormat::Yaml)]
+    pub format: PageFormat,
+}
+
+#[derive(Clone, Debug, clap::Args)]
+pub struct HistoryArgs {
     #[arg(long)]
     pub page_id: Option<String>,
     #[arg(long)]

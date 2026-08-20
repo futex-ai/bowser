@@ -78,7 +78,7 @@ pub(super) fn build_chrome_args(
     args.extend(browser_identity::stealth_launch_args(config.stealth));
     args.push("--no-first-run".to_string());
     args.push("--no-default-browser-check".to_string());
-    if force_window_size(config, synthetic_display) {
+    if force_window_size(config, synthetic_display) && !kiosk_requested(config) {
         args.push(format!(
             "--window-size={},{}",
             config.viewport.width, config.viewport.height
@@ -88,6 +88,13 @@ pub(super) fn build_chrome_args(
     args.push(DYNAMIC_DEBUG_PORT_ARGUMENT.to_string());
     args.push(format!("--user-data-dir={}", user_data_dir.display()));
     args
+}
+
+fn kiosk_requested(config: &BrowserConfig) -> bool {
+    config
+        .chrome_args
+        .iter()
+        .any(|arg| arg.split('=').next() == Some("--kiosk"))
 }
 
 pub(super) fn effective_headless(config: &BrowserConfig) -> bool {

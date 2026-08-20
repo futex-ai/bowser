@@ -224,5 +224,8 @@ rejects caller `--remote-debugging-port` or `--user-data-dir` (both split and
 `=` forms) instead of silently overriding them. Other arguments are forwarded
 unchanged; this includes WebRTC controls such as
 `--webrtc-ip-handling-policy=disable_non_proxied_udp`.
+If caller arguments include `--kiosk`, Bowser omits its own window-size,
+position, maximize, fullscreen, and app-mode arguments so the caller and
+display retain geometry ownership.
 
 For Anthropic and OpenAI providers, `api_key_env` names the environment variable that contains the actual provider API key. If that environment variable is missing or empty, compact YAML omits `describable: true`, regular captures stay structural, and explicit `describe` requests fail unless a cached description already exists. For Ollama, enabled local configuration is enough for `describable: true`. All provider clients apply `BrowserConfig.timeout` to the complete request, reject non-success HTTP responses before parsing the response body, retain the HTTP status in `AiSummarization`, and return `AiSummarizationTimeout` when the deadline expires.

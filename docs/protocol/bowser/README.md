@@ -9,6 +9,7 @@ Spec pages:
 
 - [Overview And Sessions](./overview-and-sessions.md)
 - [Browser And Stealth](./browser-and-stealth.md)
+- [Kiosk Launch, History, And Live Inventory](./kiosk-history-and-live-inventory.md)
 - [YAML Representation](./yaml-representation.md)
 - [YAML Examples And Flattening](./yaml-examples-and-flattening.md)
 - [CLI Interface](./cli-interface.md)

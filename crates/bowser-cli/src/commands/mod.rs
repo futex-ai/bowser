@@ -6,6 +6,7 @@ pub mod describe;
 pub mod download;
 pub mod expand;
 pub mod get;
+pub mod history;
 pub mod interactions;
 pub mod interactive;
 pub mod meta;
