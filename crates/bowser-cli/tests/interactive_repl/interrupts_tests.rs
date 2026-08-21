@@ -148,6 +148,7 @@ fn click_recapture_does_not_wait_for_ai_image_descriptions() {
     let mut command = ProcessCommand::new(binary);
     command
         .env("BOWSER_HEADLESS", "true")
+        .env("BOWSER_CHROME_ARGS", support::CONSTRAINED_SHM_CHROME_ARGS)
         .env(
             "BOWSER_INTERNAL_STEALTH_FEATURES",
             support::HEADLESS_STEALTH_FEATURES,

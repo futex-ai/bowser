@@ -16,6 +16,10 @@ struct Capabilities {
 #[derive(Debug, Serialize)]
 struct Features {
     checkpoint: bool,
+    kiosk: bool,
+    kiosk_launch: bool,
+    history: bool,
+    live_inventory: bool,
     window_target: bool,
 }
 
@@ -26,6 +30,10 @@ pub(crate) fn run() -> Result<CommandOutput> {
         checkpoint_versions: [bowser::CHECKPOINT_VERSION],
         features: Features {
             checkpoint: true,
+            kiosk: false,
+            kiosk_launch: true,
+            history: true,
+            live_inventory: true,
             window_target: false,
         },
     };

@@ -100,3 +100,30 @@ fn machine_and_checkpoint_commands_parse() {
         Some(Command::Capabilities)
     ));
 }
+
+#[test]
+fn history_commands_parse_page_and_output_options() {
+    for command_name in ["back", "forward", "reload"] {
+        let cli = Cli::parse_from([
+            "bowser",
+            "--session",
+            "bsr_123",
+            command_name,
+            "--page-id",
+            "pg_2",
+            "--format",
+            "json",
+            "--output",
+            "capture.json",
+        ]);
+        let args = match cli.command.expect("history command") {
+            Command::Back(args) | Command::Forward(args) | Command::Reload(args) => args,
+            other => panic!("unexpected command: {other:?}"),
+        };
+        assert_eq!(args.page_id.as_deref(), Some("pg_2"));
+        assert_eq!(
+            args.output.as_deref(),
+            Some(std::path::Path::new("capture.json"))
+        );
+    }
+}

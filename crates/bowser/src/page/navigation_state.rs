@@ -182,10 +182,9 @@ impl LivePage {
         previous_url: Option<&str>,
         previous_document_key: Option<&str>,
         deadline: &NavigationDeadline,
-    ) {
-        let _ = self
-            .wait_for_changed_document_within(previous_url, previous_document_key, deadline)
-            .await;
+    ) -> bool {
+        self.wait_for_changed_document_within(previous_url, previous_document_key, deadline)
+            .await
     }
 
     async fn wait_for_assigned_document_within(

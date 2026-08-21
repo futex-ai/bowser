@@ -16,6 +16,7 @@ mod frame_metadata;
 mod frame_runtime;
 mod frame_screenshot;
 mod frame_scroll;
+mod history;
 mod iframe_input;
 mod iframe_target;
 mod input;

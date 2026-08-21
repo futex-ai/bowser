@@ -68,6 +68,13 @@ Resume and page-selection behaviour:
 
 Live page reconciliation must bound Chrome URL/title metadata probes and fall back to stored page metadata when a target is stale or slow to answer. Page listing, switching, creating, and closing pages must not wait for an unbounded target-state read.
 
+When `features.live_inventory` is true, `session info` reconnects to Chrome and
+returns only current live page targets. It reads all live URLs and titles at
+invocation time without activating a page, follows the one visible/focused tab
+when Chrome reports it unambiguously, and discovers content-opened tabs. The full polling and
+field semantics are defined in
+[Kiosk Launch, History, And Live Inventory](./kiosk-history-and-live-inventory.md).
+
 Legacy single-page session metadata should migrate forward to the multi-page metadata shape on first load or list. Loading and listing must use the same migration path so one legacy entry cannot prevent session cleanup or enumeration.
 
 The filesystem session store must replace each JSON metadata document atomically from a temporary file in the same directory. Listing skips an unreadable, malformed, or identity-mismatched individual document so other valid sessions remain enumerable; loading that session directly still reports its metadata error.

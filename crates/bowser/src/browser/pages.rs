@@ -11,7 +11,7 @@ use crate::{
 
 use super::{
     engine::Browser,
-    state::{best_live_page_id, page_target_id, take_live_page_by_id},
+    page_selection::{best_live_page_id, page_target_id, take_live_page_by_id},
 };
 
 impl Browser {
@@ -38,6 +38,23 @@ impl Browser {
             })
             .collect();
         Ok(state.metadata.page_summaries(&live_page_ids))
+    }
+
+    pub(super) async fn live_session_metadata_impl(&self) -> Result<SessionMetadata> {
+        let mut state = self.inner.lock().await;
+        let live_pages = self.sync_live_pages(&mut state).await?;
+        if live_pages.is_empty() {
+            return Err(Error::BrowserDisconnected);
+        }
+        let live_target_ids: HashSet<String> = live_pages
+            .iter()
+            .map(|page| page.target_id.clone())
+            .collect();
+        let mut metadata = state.metadata.clone();
+        metadata
+            .pages
+            .retain(|page| live_target_ids.contains(&page.target_id));
+        Ok(metadata)
     }
 
     pub(super) async fn select_page_impl(&self, page_id: &str) -> Result<Box<dyn PageEngine>> {

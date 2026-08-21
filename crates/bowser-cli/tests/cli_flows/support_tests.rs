@@ -18,6 +18,13 @@ fn bowser_command_forces_headless_browser_defaults() {
         OsStr::new("BOWSER_INTERNAL_STEALTH_FEATURES"),
         Some(OsStr::new("-launch-headed,-launch-native-window"))
     )));
+    if cfg!(target_os = "linux") {
+        assert!(
+            command
+                .get_args()
+                .any(|arg| arg == OsStr::new("--chrome-args=--disable-dev-shm-usage"))
+        );
+    }
 }
 
 #[cfg(unix)]

@@ -8,6 +8,7 @@ pub trait BrowserEngine: Send + Sync {
     async fn session_info(&self) -> Result<SessionInfo>;
     async fn current_page(&self) -> Result<Box<dyn PageEngine>>;
     async fn list_pages(&self) -> Result<Vec<SessionPageSummary>>;
+    async fn live_session_metadata(&self) -> Result<SessionMetadata>;
     async fn select_page(&self, page_id: &str) -> Result<Box<dyn PageEngine>>;
     async fn new_page(&self, url: Option<&str>) -> Result<Box<dyn PageEngine>>;
     async fn close_page(&self, page_id: Option<&str>) -> Result<Box<dyn PageEngine>>;
@@ -63,6 +64,13 @@ new Bowser-owned ephemeral profile, and returns the newly created `Browser`.
 `read_checkpoint` and `write_checkpoint` provide validated, atomic plaintext
 JSON file I/O; coverage and exclusions are defined in
 [Checkpoints And Machine Output](checkpoints-and-machine-output.md).
+
+`BrowserEngine::live_session_metadata` reconciles current Chrome targets,
+URLs, and titles without activating a page. It returns a `SessionMetadata`
+snapshot containing live pages only; stored page IDs and the logical selected
+page remain stable while their targets are live, except that an unambiguous
+visible/focused tab becomes the selected page without being activated by
+Bowser.
 
 `PageEngine::download` is browser-native. It runs through Chrome's current
 session state, so redirects, cookies, authentication, and

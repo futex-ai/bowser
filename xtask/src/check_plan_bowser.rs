@@ -73,6 +73,8 @@ pub(crate) const BOWSER_COMMANDS: &[CheckCommand] = &[
             "--test",
             "keypress",
             "--test",
+            "kiosk_mode",
+            "--test",
             "navigation",
             "--test",
             "navigation_cancellation",

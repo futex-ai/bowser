@@ -8,12 +8,16 @@ use std::time::Duration;
 use assert_cmd::Command;
 
 pub(crate) use super::session_dir_support::test_session_dir;
-pub(crate) use bowser_support::{browser_test_guard, chrome_path, spawn_server};
+pub(crate) use bowser_support::{browser_test_guard, chrome_path, spawn_server, test_config};
 
 const HEADLESS_STEALTH_FEATURES: &str = "-launch-headed,-launch-native-window";
+const CONSTRAINED_LINUX_SHM_ARG: &str = "--chrome-args=--disable-dev-shm-usage";
 
 pub(crate) fn bowser_command() -> Command {
     let mut command = Command::cargo_bin("bowser").expect("bowser bin");
+    if cfg!(target_os = "linux") {
+        command.arg(CONSTRAINED_LINUX_SHM_ARG);
+    }
     command.env("BOWSER_HEADLESS", "true");
     command.env(
         "BOWSER_INTERNAL_STEALTH_FEATURES",

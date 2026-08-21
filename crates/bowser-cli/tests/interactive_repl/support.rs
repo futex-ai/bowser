@@ -20,6 +20,7 @@ pub(crate) use session_dir_support::test_session_dir;
 
 pub(crate) const PROMPT_PATTERN: &str = r"bowser>(?:\x1b\[[0-9;?]*[ -/]*[@-~])* ";
 pub(crate) const HEADLESS_STEALTH_FEATURES: &str = "-launch-headed,-launch-native-window";
+pub(crate) const CONSTRAINED_SHM_CHROME_ARGS: &str = "--disable-dev-shm-usage";
 pub(crate) const REPL_EXPECT_TIMEOUT: Duration = Duration::from_secs(90);
 
 pub(crate) fn only_session_id(session_dir: &Path) -> String {
@@ -85,6 +86,7 @@ pub(crate) fn repl_command(
     let mut command = ProcessCommand::new(binary);
     command
         .env("BOWSER_HEADLESS", "true")
+        .env("BOWSER_CHROME_ARGS", CONSTRAINED_SHM_CHROME_ARGS)
         .env(
             "BOWSER_INTERNAL_STEALTH_FEATURES",
             HEADLESS_STEALTH_FEATURES,
@@ -107,6 +109,7 @@ pub(crate) fn binary_path() -> std::path::PathBuf {
 pub(crate) fn bowser_command() -> Command {
     let mut command = Command::cargo_bin("bowser").expect("bowser bin");
     command.env("BOWSER_HEADLESS", "true");
+    command.env("BOWSER_CHROME_ARGS", CONSTRAINED_SHM_CHROME_ARGS);
     command.env(
         "BOWSER_INTERNAL_STEALTH_FEATURES",
         HEADLESS_STEALTH_FEATURES,

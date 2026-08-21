@@ -52,9 +52,7 @@ pub async fn run(
             )
         }
         SessionSubcommand::Info { session_id } => {
-            let metadata = store.load(&session_id).await?;
-            context.session = Some(metadata.id.clone());
-            context.page = metadata.selected_page_id.clone();
+            let metadata = live_session_metadata(config, &session_id, context).await?;
             let mut human = format!(
                 "id: {}\nhttp_url: {}\nwebsocket_url: {}\npid: {}\nuser_data_dir: {}\nupdated_at: {}\n",
                 metadata.id,
@@ -76,7 +74,7 @@ pub async fn run(
                 }
             }
             human.push_str(&render_page_summaries(
-                &metadata.page_summaries(std::iter::empty::<&str>()),
+                &metadata.page_summaries(metadata.pages.iter().map(|page| page.id.as_str())),
             ));
             CommandOutput::result(serde_json::json!({ "session": metadata }))
                 .map(|output| output.human_stdout(human))
@@ -138,4 +136,21 @@ pub async fn run(
             })
         }
     }
+}
+
+async fn live_session_metadata(
+    config: &bowser::BrowserConfig,
+    session_id: &str,
+    context: &mut CommandContext,
+) -> Result<bowser::SessionMetadata> {
+    let mut live_config = config.clone();
+    live_config.session.id = Some(session_id.to_string());
+    let browser = Browser::launch(live_config).await?;
+    context.update_session(&browser.session_info().await?);
+    let operation_result = browser.live_session_metadata().await;
+    let detach_result = browser.detach().await;
+    let metadata = operation_result?;
+    context.update_session(&browser.session_info().await?);
+    detach_result?;
+    Ok(metadata)
 }

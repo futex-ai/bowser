@@ -6,28 +6,30 @@ use crate::model::{SessionPageSummary, SessionSummary};
 impl SessionPageMetadata {
     /// Returns the best available page URL.
     pub fn url(&self) -> Option<String> {
-        self.preview_capture
-            .as_ref()
-            .map(|capture| capture.url.clone())
-            .or_else(|| {
-                self.full_capture
-                    .as_ref()
-                    .map(|capture| capture.url.clone())
-            })
-            .or_else(|| self.last_url.clone())
+        self.last_url.clone().or_else(|| {
+            self.preview_capture
+                .as_ref()
+                .map(|capture| capture.url.clone())
+                .or_else(|| {
+                    self.full_capture
+                        .as_ref()
+                        .map(|capture| capture.url.clone())
+                })
+        })
     }
 
     /// Returns the best available page title.
     pub fn title(&self) -> Option<String> {
-        self.preview_capture
-            .as_ref()
-            .map(|capture| capture.title.clone())
-            .or_else(|| {
-                self.full_capture
-                    .as_ref()
-                    .map(|capture| capture.title.clone())
-            })
-            .or_else(|| self.last_title.clone())
+        self.last_title.clone().or_else(|| {
+            self.preview_capture
+                .as_ref()
+                .map(|capture| capture.title.clone())
+                .or_else(|| {
+                    self.full_capture
+                        .as_ref()
+                        .map(|capture| capture.title.clone())
+                })
+        })
     }
 
     /// Returns true when the stored page url is non-empty and not blank.
@@ -89,3 +91,7 @@ impl SessionMetadata {
             .collect()
     }
 }
+
+#[cfg(test)]
+#[path = "_tests_/summary_tests.rs"]
+mod summary_tests;

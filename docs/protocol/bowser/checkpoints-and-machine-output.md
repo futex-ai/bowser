@@ -100,7 +100,7 @@ fields. Stable error codes are:
   `session_page_not_live`, `session_persist`, `session_detach`
 - `checkpoint_read`, `checkpoint_write`, `checkpoint_invalid`,
   `checkpoint_unsupported`, `checkpoint_capture`, `checkpoint_restore`
-- `navigation`, `timeout`, `element_not_found`, `element_not_interactable`,
+- `navigation`, `history_exhausted`, `timeout`, `element_not_found`, `element_not_interactable`,
   `key_press`, `capture`, `expand_not_found`, `metadata_not_found`,
   `describe_not_image`, `describe_unavailable`, `ai`, `screenshot`,
   `download`, `javascript`, `configuration`, `output_write`,
@@ -116,6 +116,9 @@ and paths where available and otherwise remains an empty object.
   commands return `{ "capture": <PageCapture> }`. With `--output`, they return
   `{ "output": { "path": "...", "format": "..." } }` instead. HTML output
   is represented as `{ "html": "..." }` when not written to a file.
+- Capture-bearing `back`, `forward`, and `reload` use the same result shapes.
+  An exhausted back or forward fails with `history_exhausted` and
+  `{ "direction": "back" | "forward" }` in `error.detail`.
 - `get --screenshot` additionally returns `screenshot.path` and
   `screenshot.bytes`.
 - `download` returns `path` and `bytes`.
@@ -145,11 +148,19 @@ plain JSON for easy template inspection:
   "checkpoint_versions": [1],
   "features": {
     "checkpoint": true,
+    "kiosk": false,
+    "kiosk_launch": true,
+    "history": true,
+    "live_inventory": true,
     "window_target": false
   }
 }
 ```
 
 `version` is the installed CLI package version. Feature booleans describe the
-current binary honestly. Window-target reporting is deferred and no window
-query command exists while `window_target` is false.
+current binary honestly. Verified caller-requested kiosk launch, history
+verbs, and read-only live inventory are available. Desktop Chrome's unlocked
+tab/window kiosk accelerators and deferred window-target reporting keep
+`kiosk` and `window_target` false respectively. Consumers must detect
+`kiosk_launch` directly before appending `--kiosk`; package versions are not a
+feature gate across mixed template releases.

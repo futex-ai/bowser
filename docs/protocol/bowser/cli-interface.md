@@ -53,6 +53,11 @@ caller values for `--remote-debugging-port` and `--user-data-dir` because they
 would break session identity and ownership. This makes conflicts explicit;
 arguments are never silently dropped. Network-hardening options such as
 `--webrtc-ip-handling-policy=disable_non_proxied_udp` pass through unchanged.
+When the caller supplies `--kiosk`, Bowser omits its own window geometry and
+mode defaults. `features.kiosk_launch` advertises this verified launch and
+fullscreen page-workflow contract. The current desktop accelerator limitation
+keeps the separate `features.kiosk` flag false; see
+[Kiosk Launch, History, And Live Inventory](./kiosk-history-and-live-inventory.md).
 
 The platform-default config file is optional when `--config` is omitted. When `--config <PATH>` is supplied, that exact file must exist and any missing-file, read, parse, or validation failure is reported with the selected path.
 
@@ -134,6 +139,28 @@ Example:
 ```bash
 bowser capture --session bsr_01HZX... --page-id pg_2 --format html
 ```
+
+#### `bowser back`, `bowser forward`, and `bowser reload`
+
+Perform one browser-history action on the selected page, or on an explicit
+page ID, wait for the resulting document, capture it, and detach.
+
+```text
+bowser back [OPTIONS]
+bowser forward [OPTIONS]
+bowser reload [OPTIONS]
+
+Options:
+  --page-id <PAGE_ID>        Optional page ID to select before the action
+  --output <PATH>            Write output to file instead of stdout
+  --format <FORMAT>          Output format: yaml | json | html [default: yaml]
+```
+
+All three commands require global `--session <ID>`. Back and forward return
+the stable machine code `history_exhausted` with a `back` or `forward`
+direction when no entry exists. Reload uses Chrome's normal cache behavior.
+Result shapes are defined in
+[Checkpoints And Machine Output](./checkpoints-and-machine-output.md).
 
 #### `bowser expand <ELEMENT_ID>`
 
@@ -421,7 +448,7 @@ bowser session <SUBCOMMAND>
 
 Subcommands:
   list                       List detached sessions
-  info <SESSION_ID>          Show detached-session metadata, including selected page and page summaries
+  info <SESSION_ID>          Show live page URLs/titles, selected page, and session metadata
   close <SESSION_ID>         Close a detached session, remove its metadata, and remove any Bowser-owned ephemeral profile
   export --to <PATH>         Export the session selected by global --session to a portable checkpoint
   restore --from <PATH>      Restore a portable checkpoint into a fresh session and profile
@@ -429,9 +456,18 @@ Subcommands:
 
 Checkpoint export and restore behavior is defined in
 [Checkpoints And Machine Output](./checkpoints-and-machine-output.md).
+When `features.live_inventory` is true, `session info` reads all current Chrome
+page targets without activating, focusing, navigating, or sending input to a
+page. Content-opened tabs and out-of-band URL/title changes appear on the next
+invocation.
 
 #### `bowser capabilities`
 
 Print the installed Bowser version, supported envelope/checkpoint versions,
 and feature flags. Plain mode prints the capability object as JSON; with
 `--json-envelope`, it is the command-specific `result` in envelope version 1.
+`kiosk_launch`, `history`, and `live_inventory` are currently true. Callers
+must gate appending `--kiosk` on `kiosk_launch`, not on a Bowser version.
+`kiosk` remains false until desktop Chrome's tab/window accelerator contract
+is locked, and `window_target` remains false because no window query command
+exists.

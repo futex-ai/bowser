@@ -22,6 +22,11 @@ browser-backed integration target, CLI integration tests, and a real
 Browser-running commands set `BOWSER_HEADLESS=true` and disable the two
 headed-launch stealth experiments. Pure library and CLI unit tests run without
 those overrides so they continue to assert production defaults.
+Linux CLI browser tests also pass Chrome `--disable-dev-shm-usage` so tests
+that intentionally keep several detached sessions fit constrained container
+shared-memory mounts.
+The Linux-only kiosk target explicitly launches headed Chrome on its own fixed
+Xvfb/Metacity display to verify display-owned fullscreen geometry.
 The backend-focus replacement regression gets one additional targeted browser
 run with accessibility capture enabled so that otherwise experimental path
 stays aligned with normal text-replacement semantics.

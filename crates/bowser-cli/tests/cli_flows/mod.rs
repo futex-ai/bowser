@@ -1,6 +1,7 @@
 mod download_commands_tests;
 mod get_error_tests;
 mod get_expand;
+mod history_commands_tests;
 mod machine_commands_tests;
 mod page_commands_tests;
 mod screenshot_commands_tests;
