@@ -1,6 +1,6 @@
 //! Browser page inventory state and metadata synchronization.
 
-use std::collections::HashSet;
+use std::{collections::HashSet, time::Duration};
 
 use chromiumoxide::browser::Browser as ChromiumBrowser;
 use futures::future::join_all;
@@ -15,6 +15,9 @@ use super::{
     page_selection::best_live_page_id,
     page_state::{live_page_focused, live_page_title, live_page_url},
 };
+
+const PAGE_DISCOVERY_ATTEMPTS: usize = 20;
+const PAGE_DISCOVERY_RETRY_DELAY: Duration = Duration::from_millis(100);
 
 #[derive(Debug)]
 pub(super) struct BrowserState {
@@ -46,11 +49,20 @@ impl Browser {
         &self,
         state: &mut BrowserState,
     ) -> Result<Vec<LiveBrowserPage>> {
-        state
+        let target_infos = state
             .browser
             .fetch_targets()
             .await
             .map_err(|err| Error::cdp(format!("failed to fetch targets: {err}")))?;
+        let fetched_page_target_ids = target_infos
+            .into_iter()
+            .filter(|target| target.r#type == "page")
+            .map(|target| target.target_id.as_ref().to_string())
+            .collect::<Vec<_>>();
+        let fetched_page_targets = fetched_page_target_ids
+            .iter()
+            .cloned()
+            .collect::<HashSet<_>>();
         let mut attempt = 0;
         let pages = loop {
             let pages = state
@@ -58,39 +70,45 @@ impl Browser {
                 .pages()
                 .await
                 .map_err(|err| Error::cdp(format!("failed to list pages: {err}")))?;
-            if !pages.is_empty() || attempt == 19 {
+            let ready_target_ids = pages
+                .iter()
+                .map(|page| page.target_id().as_ref().to_string())
+                .collect::<HashSet<_>>();
+            if fetched_page_targets.is_subset(&ready_target_ids) {
                 break pages;
             }
             attempt += 1;
-            tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+            if attempt == PAGE_DISCOVERY_ATTEMPTS {
+                break pages;
+            }
+            tokio::time::sleep(PAGE_DISCOVERY_RETRY_DELAY).await;
         };
+        let pages = pages
+            .into_iter()
+            .filter(|page| fetched_page_targets.contains(page.target_id().as_ref()))
+            .collect();
         let mut live_pages = collect_live_pages(state, pages).await;
-        self.add_known_live_pages(state, &mut live_pages).await?;
+        self.add_fetched_live_pages(state, &fetched_page_target_ids, &mut live_pages)
+            .await?;
         Ok(live_pages)
     }
 
-    async fn add_known_live_pages(
+    async fn add_fetched_live_pages(
         &self,
         state: &mut BrowserState,
+        fetched_page_target_ids: &[String],
         live_pages: &mut Vec<LiveBrowserPage>,
     ) -> Result<()> {
         let mut live_target_ids: HashSet<String> = live_pages
             .iter()
             .map(|page| page.target_id.clone())
             .collect();
-        let known_target_ids: Vec<String> = state
-            .metadata
-            .pages
-            .iter()
-            .map(|page| page.target_id.clone())
-            .filter(|target_id| !target_id.is_empty() && target_id != "legacy")
-            .collect();
-        for target_id in known_target_ids {
-            if live_target_ids.contains(&target_id) {
+        for target_id in fetched_page_target_ids {
+            if live_target_ids.contains(target_id) {
                 continue;
             }
             if let Ok(page) = state.browser.get_page(target_id.clone().into()).await {
-                live_target_ids.insert(target_id);
+                live_target_ids.insert(target_id.clone());
                 live_pages.push(build_live_browser_page(&state.metadata, page).await);
             }
         }
