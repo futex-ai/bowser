@@ -15,21 +15,37 @@ impl Browser {
         &self,
         state: &mut BrowserState,
     ) -> Result<(String, chromiumoxide::Page)> {
-        let unmanaged_blank_pages = self
-            .list_live_pages(state)
-            .await?
-            .into_iter()
-            .filter(|page| {
-                (page.url.is_empty() || page.url == "about:blank")
-                    && state.metadata.page_by_target_id(&page.target_id).is_none()
-            })
-            .collect::<Vec<_>>();
         let page = state
             .browser
             .new_page("about:blank")
             .await
             .map_err(|err| Error::cdp(format!("failed to create page: {err}")))?;
         let target_id = page.target_id().as_ref().to_string();
+        let live_pages = match self.list_live_pages(state).await {
+            Ok(live_pages) => live_pages,
+            Err(error) => {
+                let _ = self
+                    .close_live_page_target(
+                        state,
+                        page.clone(),
+                        "unfinished Bowser page",
+                        &target_id,
+                    )
+                    .await;
+                return Err(error);
+            }
+        };
+        let unmanaged_blank_pages = live_pages
+            .into_iter()
+            .filter(|live_page| {
+                live_page.target_id != target_id
+                    && (live_page.url.is_empty() || live_page.url == "about:blank")
+                    && state
+                        .metadata
+                        .page_by_target_id(&live_page.target_id)
+                        .is_none()
+            })
+            .collect::<Vec<_>>();
         for unmanaged_page in unmanaged_blank_pages {
             if let Err(error) = self
                 .close_live_page_target(

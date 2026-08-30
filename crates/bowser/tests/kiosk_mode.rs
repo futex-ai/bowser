@@ -108,7 +108,7 @@ async fn kiosk_flow() {
         "Fixture Long"
     );
     let pages = browser.list_pages().await.expect("two kiosk pages");
-    assert_eq!(pages.len(), 2);
+    assert_eq!(pages.len(), 2, "unexpected kiosk pages: {pages:#?}");
     let second_page_id = pages
         .iter()
         .find(|page| {
