@@ -17,6 +17,7 @@ pub(crate) enum AiProviderArg {
 #[derive(Debug, Parser)]
 #[command(name = "bowser")]
 #[command(about = "Render web pages into compact YAML")]
+#[command(version)]
 pub(crate) struct Cli {
     #[arg(long, global = true)]
     pub(crate) chrome_path: Option<PathBuf>,

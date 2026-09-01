@@ -22,6 +22,7 @@ parsing, terminal rendering, and interactive control separate from the reusable
 ```bash
 bowser https://example.com
 bowser -i https://example.com
+bowser --version
 bowser session list
 bowser --json-envelope capabilities
 ```
@@ -29,6 +30,7 @@ bowser --json-envelope capabilities
 ## Commands
 
 - `bowser <URL>` and `bowser get <URL>`: single-shot capture with detached-session output
+- `bowser -V` and `bowser --version`: print the exact installed package version and exit successfully
 - once `get` creates a session, later navigation, capture, or output errors still detach and print `Session: <ID>` so the running browser remains discoverable and resumable
 - resumed `capture`, interaction, and `page` commands attempt detach after every browser operation; operation and render errors retain precedence, while terminal or file output happens only after detach succeeds
 - `bowser get --format html <URL>`: print the full current rendered document as raw HTML text while still storing the structural capture in the detached session
