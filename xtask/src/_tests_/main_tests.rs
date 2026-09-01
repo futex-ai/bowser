@@ -152,3 +152,22 @@ fn release_builds_checkout_the_verified_commit() {
         "manual releases must resolve an explicitly qualified tag ref"
     );
 }
+
+#[test]
+fn built_cli_smokes_verify_the_reported_package_version() {
+    let main_workflow = include_str!("../../../.github/workflows/main.yml");
+    let release_workflow = include_str!("../../../.github/workflows/release.yml");
+
+    assert!(
+        main_workflow.contains("target/release/bowser --version"),
+        "main must smoke the built CLI version flag"
+    );
+    assert!(
+        release_workflow.contains("\"target/$TARGET/release/bowser\" --version"),
+        "release builds must smoke the packaged CLI version flag"
+    );
+    assert!(
+        release_workflow.contains("bowser $VERSION"),
+        "release builds must compare the CLI output with the verified tag version"
+    );
+}

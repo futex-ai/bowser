@@ -130,6 +130,20 @@ pub(crate) const BOWSER_COMMANDS: &[CheckCommand] = &[
         ],
         CI_CARGO_ENV,
     ),
+    CheckCommand::root(
+        "cargo",
+        &[
+            "run",
+            "--locked",
+            "-p",
+            "bowser-cli",
+            "--bin",
+            "bowser",
+            "--",
+            "--version",
+        ],
+        CI_CARGO_ENV,
+    ),
 ];
 
 #[cfg(test)]
