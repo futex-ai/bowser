@@ -268,6 +268,8 @@ pub enum SessionSubcommand {
     List,
     Info {
         session_id: String,
+        #[arg(long)]
+        include_favicons: bool,
     },
     Close {
         session_id: String,

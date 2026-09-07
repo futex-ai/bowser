@@ -69,6 +69,8 @@ pub(crate) const BOWSER_COMMANDS: &[CheckCommand] = &[
             "--test",
             "document_capture",
             "--test",
+            "favicon_inventory",
+            "--test",
             "input_flows",
             "--test",
             "keypress",

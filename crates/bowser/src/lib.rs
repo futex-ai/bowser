@@ -10,6 +10,7 @@ mod config;
 mod debug_port;
 mod error;
 mod expand;
+mod favicon;
 mod keyboard;
 mod metadata;
 mod model;
@@ -42,10 +43,10 @@ pub use error::{Error, Result};
 pub use expand::{expand_element, find_element, find_element_mut};
 pub use metadata::metadata_for_element;
 pub use model::{
-    DownloadResult, Element, ElementBounds, ElementVisibility, ImageDescription, InputType,
-    ListItem, ListType, MetadataRecord, PageCapture, PageContent, ScrollTarget, SessionInfo,
-    SessionPageSummary, SessionPageType, SessionSummary, TableCell, TableRow, TruncationInfo,
-    Viewport, image_filename,
+    BrowserFavicon, DownloadResult, Element, ElementBounds, ElementVisibility, ImageDescription,
+    InputType, ListItem, ListType, LiveSessionPage, MetadataRecord, PageCapture, PageContent,
+    ScrollTarget, SessionInfo, SessionPageSummary, SessionPageType, SessionSummary, TableCell,
+    TableRow, TruncationInfo, Viewport, image_filename,
 };
 pub use page::PageEngine;
 pub use session::{

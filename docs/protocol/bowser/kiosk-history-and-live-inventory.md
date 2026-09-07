@@ -13,6 +13,7 @@ Chrome kiosk launch, one-shot history commands, and live session inventory.
 | `features.kiosk` | `false` | Desktop Chrome does not yet meet the separate locked-accelerator contract. This flag is reserved for a future launch mode that provides that lock itself. |
 | `features.history` | `true` | The one-shot `back`, `forward`, and `reload` commands and typed exhaustion result are available. |
 | `features.live_inventory` | `true` | `session info` reads the current live page inventory without activating a page. |
+| `features.page_favicons` | `true` | Opt-in live inventory supplies bounded, transient PNG icons; see [Transient Page Favicons](./page-favicons.md). |
 
 Feature values describe the installed binary, are additive, and may change
 independently in later releases. Consumers must gate kiosk launch on
@@ -131,6 +132,10 @@ has no exhaustion state and currently uses Chrome's normal cache behavior.
 
 ## Live `session info`
 
+The default response below remains icon-free. The separately negotiated
+`--include-favicons` response uses the flat live-page shape defined in
+[Transient Page Favicons](./page-favicons.md).
+
 With `features.live_inventory: true`, `session info <SESSION_ID>` resumes the
 debug connection and reads Chrome's current page targets, URLs, and titles at
 invocation time. It includes human navigation, client-side URL changes,
@@ -140,7 +145,9 @@ Closed targets are omitted. Existing `pages[].last_url` and
 response are live observations.
 
 The read does not call Chrome target activation, change focus, navigate, or
-send input. URL, title, and document-focus reads for all pages run concurrently,
+send input. Target discovery reads `Target.getTargets` without replacing the
+existing connection records, so inventory cannot invalidate page handles that
+callers are already using. URL, title, and document-focus reads for all pages run concurrently,
 each with a one-second bound; URL/title failures use stored-value fallback.
 When exactly one page reports that it is visible and focused, the returned
 selection follows that native active tab. If focus is unavailable or ambiguous,

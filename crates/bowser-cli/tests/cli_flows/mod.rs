@@ -1,4 +1,5 @@
 mod download_commands_tests;
+mod favicon_commands_tests;
 mod get_error_tests;
 mod get_expand;
 mod history_commands_tests;

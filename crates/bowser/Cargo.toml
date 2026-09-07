@@ -12,6 +12,10 @@ description = "Chrome control library for structured page capture and resumable 
 name = "browser_flows"
 path = "tests/browser_flows/mod.rs"
 
+[[test]]
+name = "favicon_inventory"
+path = "tests/favicon_inventory/mod.rs"
+
 [dependencies]
 async-trait = "0.1.89"
 async-tungstenite = { version = "0.34.1", features = ["tokio-runtime"] }
@@ -20,10 +24,15 @@ chromiumoxide = "0.9.1"
 chrono = { version = "0.4.44", features = ["serde"] }
 dirs = "6.0.0"
 futures = "0.3.32"
+image = { version = "0.25.10", default-features = false, features = ["png", "ico", "jpeg", "gif", "webp"] }
+percent-encoding = "2.3.2"
 reqwest = { version = "0.13.2", features = ["json", "rustls", "blocking"] }
+resvg = "0.48.1"
+roxmltree = "0.21.1"
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.149"
 serde_yaml = "0.9.34"
+svgtypes = "0.16.1"
 tempfile = "3.27.0"
 thiserror = "2.0.18"
 tokio = { version = "1.51.1", features = ["full"] }
