@@ -143,7 +143,7 @@ plain JSON for easy template inspection:
 
 ```json
 {
-  "version": "0.3.0",
+  "version": "0.4.0",
   "envelope_versions": [1],
   "checkpoint_versions": [1],
   "features": {
@@ -152,6 +152,7 @@ plain JSON for easy template inspection:
     "kiosk_launch": true,
     "history": true,
     "live_inventory": true,
+    "page_favicons": true,
     "window_target": false
   }
 }
@@ -159,7 +160,8 @@ plain JSON for easy template inspection:
 
 `version` is the installed CLI package version. Feature booleans describe the
 current binary honestly. Verified caller-requested kiosk launch, history
-verbs, and read-only live inventory are available. Desktop Chrome's unlocked
+verbs, read-only live inventory, and [transient page favicons](./page-favicons.md)
+are available. Desktop Chrome's unlocked
 tab/window kiosk accelerators and deferred window-target reporting keep
 `kiosk` and `window_target` false respectively. Consumers must detect
 `kiosk_launch` directly before appending `--kiosk`; package versions are not a

@@ -2,6 +2,7 @@
 
 mod download;
 mod element;
+mod favicon;
 mod geometry;
 mod image;
 mod input;
@@ -11,6 +12,7 @@ mod session;
 
 pub use self::download::DownloadResult;
 pub use self::element::{Element, ListItem, TableCell, TableRow};
+pub use self::favicon::{BrowserFavicon, LiveSessionPage};
 pub use self::geometry::{ElementBounds, ElementVisibility, ScrollTarget, Viewport};
 pub(crate) use self::image::image_label;
 pub use self::image::{ImageDescription, image_filename};

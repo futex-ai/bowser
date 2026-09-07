@@ -20,6 +20,7 @@ struct Features {
     kiosk_launch: bool,
     history: bool,
     live_inventory: bool,
+    page_favicons: bool,
     window_target: bool,
 }
 
@@ -34,6 +35,7 @@ pub(crate) fn run() -> Result<CommandOutput> {
             kiosk_launch: true,
             history: true,
             live_inventory: true,
+            page_favicons: true,
             window_target: false,
         },
     };

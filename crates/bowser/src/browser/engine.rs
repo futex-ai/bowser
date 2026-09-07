@@ -9,7 +9,7 @@ use crate::{
     checkpoint::SessionCheckpoint,
     config::{BrowserConfig, validate_config},
     error::Result,
-    model::{SessionInfo, SessionPageSummary},
+    model::{LiveSessionPage, SessionInfo, SessionPageSummary},
     page::PageEngine,
     session::{
         FileSessionStore, OwnedProfileGuard, SessionMetadata, SessionStore,
@@ -37,6 +37,8 @@ pub trait BrowserEngine: Send + Sync {
     async fn list_pages(&self) -> Result<Vec<SessionPageSummary>>;
     /// Reads current metadata for every live page without activating a page.
     async fn live_session_metadata(&self) -> Result<SessionMetadata>;
+    /// Reads current live pages with bounded ephemeral favicon enrichment.
+    async fn live_session_pages(&self) -> Result<Vec<LiveSessionPage>>;
     /// Selects one known page by Bowser page identifier.
     async fn select_page(&self, page_id: &str) -> Result<Box<dyn PageEngine>>;
     /// Opens a new page and returns it as the selected page engine.
@@ -179,6 +181,10 @@ impl BrowserEngine for Browser {
 
     async fn live_session_metadata(&self) -> Result<SessionMetadata> {
         self.live_session_metadata_impl().await
+    }
+
+    async fn live_session_pages(&self) -> Result<Vec<LiveSessionPage>> {
+        self.live_session_pages_impl().await
     }
 
     async fn select_page(&self, page_id: &str) -> Result<Box<dyn PageEngine>> {
