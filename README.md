@@ -156,4 +156,3 @@ resolving the tag again.
 - [Bowser protocol](docs/protocol/bowser/README.md)
 - [Rust dependency and testing boundaries](docs/dev/rust/architecture/dependencies.md)
 - [Workspace automation](xtask/README.md)
-- [Plans index](plans/README.md)
