@@ -1,8 +1,8 @@
 # xtask
 
 Bowser's internal workspace automation binary keeps local verification, CI, and
-read-only AI review on one command surface. Developers should use it when
-changing either Bowser crate or repository tooling.
+read-only AI review on one command surface. Developers run `cargo xtask check`
+when they change either Bowser crate or repository tooling.
 
 ## Responsibilities
 
@@ -93,4 +93,4 @@ CLI. It prints findings to stdout and does not change repository files.
 
 - [Workspace README](../README.md)
 - [Bowser protocol](../docs/protocol/bowser/README.md)
-- [Rust dependency boundaries](../docs/dev/rust/architecture/dependencies.md)
+- [Rust workspace boundaries](../docs/dev/rust/architecture/dependencies.md)

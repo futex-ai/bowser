@@ -154,5 +154,5 @@ resolving the tag again.
 ## Documentation
 
 - [Bowser protocol](docs/protocol/bowser/README.md)
-- [Rust dependency and testing boundaries](docs/dev/rust/architecture/dependencies.md)
+- [Rust workspace boundaries](docs/dev/rust/architecture/dependencies.md)
 - [Workspace automation](xtask/README.md)
