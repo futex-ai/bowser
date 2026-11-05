@@ -6,6 +6,7 @@ Core library for launching Chrome, capturing rendered pages into Bowser’s stru
 
 - Browser lifecycle and detached sessions
 - Multi-page session selection and creation
+- Opt-in transient page favicons acquired in the live browser context
 - Live portable checkpoint export and fresh-session restore
 - DOM capture and structured page model
 - Compact YAML and JSON serialization
@@ -50,6 +51,12 @@ restored.detach().await?;
 - `to_yaml`, `to_json`, `metadata_to_yaml`, `image_description_to_yaml`: display and machine-readable serialization helpers
 
 ## Development
+
+`BrowserEngine::live_session_pages` adds a nullable bounded PNG favicon to
+each live page. Acquisition shares one additional one-second budget across
+the inventory and leaves normal metadata, checkpoints, and selection intact.
+See [Transient Page Favicons](../../docs/protocol/bowser/page-favicons.md) for
+source-format limits, the supported SVG subset, and failure behavior.
 
 ```sh
 cargo test -p bowser

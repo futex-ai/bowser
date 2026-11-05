@@ -82,6 +82,7 @@ pub async fn spawn_server() -> TestServer {
         .route("/image-page", get(image_page))
         .route("/click-reveals-images", get(click_reveals_images_page))
         .route("/images/checkerboard.png", get(checkerboard_image))
+        .route("/favicon.ico", get(checkerboard_image))
         .route("/images/red.svg", get(red_vector_image))
         .route("/anthropic", post(anthropic_mock))
         .route("/anthropic-pixel", post(anthropic_pixel_mock))

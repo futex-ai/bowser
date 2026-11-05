@@ -51,7 +51,30 @@ pub async fn run(
                     .human_stdout(human),
             )
         }
-        SessionSubcommand::Info { session_id } => {
+        SessionSubcommand::Info {
+            session_id,
+            include_favicons: true,
+        } => {
+            let pages = live_session_pages(config, &session_id, context).await?;
+            let human = pages
+                .iter()
+                .map(|page| {
+                    format!(
+                        "{}\t{}\t{}\t{}\n",
+                        page.page_id,
+                        page.url,
+                        page.title.as_deref().unwrap_or_default(),
+                        if page.selected { "selected" } else { "" }
+                    )
+                })
+                .collect::<String>();
+            CommandOutput::result(serde_json::json!({ "session": { "pages": pages } }))
+                .map(|output| output.human_stdout(human))
+        }
+        SessionSubcommand::Info {
+            session_id,
+            include_favicons: false,
+        } => {
             let metadata = live_session_metadata(config, &session_id, context).await?;
             let mut human = format!(
                 "id: {}\nhttp_url: {}\nwebsocket_url: {}\npid: {}\nuser_data_dir: {}\nupdated_at: {}\n",
@@ -136,6 +159,23 @@ pub async fn run(
             })
         }
     }
+}
+
+async fn live_session_pages(
+    config: &bowser::BrowserConfig,
+    session_id: &str,
+    context: &mut CommandContext,
+) -> Result<Vec<bowser::LiveSessionPage>> {
+    let mut live_config = config.clone();
+    live_config.session.id = Some(session_id.to_string());
+    let browser = Browser::launch(live_config).await?;
+    context.update_session(&browser.session_info().await?);
+    let operation_result = browser.live_session_pages().await;
+    let detach_result = browser.detach().await;
+    let pages = operation_result?;
+    context.update_session(&browser.session_info().await?);
+    detach_result?;
+    Ok(pages)
 }
 
 async fn live_session_metadata(

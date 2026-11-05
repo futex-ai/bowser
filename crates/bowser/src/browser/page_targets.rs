@@ -3,7 +3,8 @@
 use std::time::Duration;
 
 use chromiumoxide::{
-    browser::Browser as ChromiumBrowser, cdp::browser_protocol::target::CloseTargetParams,
+    browser::Browser as ChromiumBrowser,
+    cdp::browser_protocol::target::{CloseTargetParams, GetTargetsParams},
 };
 
 use crate::error::{Error, Result, is_target_session_missing};
@@ -96,7 +97,7 @@ impl Browser {
         for attempt in 0..20 {
             state
                 .browser
-                .fetch_targets()
+                .execute(GetTargetsParams::default())
                 .await
                 .map_err(|err| Error::cdp(format!("failed to fetch targets: {err}")))?;
             let pages = state

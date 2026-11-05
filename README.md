@@ -1,5 +1,11 @@
 # Bowser
 
+Live browser tabs can expose their site's favicon through
+`bowser --json-envelope session info <SESSION_ID> --include-favicons` when
+`features.page_favicons` is advertised. Icons use the active browser context
+and a bounded transient PNG response; see the
+[favicon contract](./docs/protocol/bowser/page-favicons.md).
+
 Bowser is a Rust library and command-line tool for controlling Chrome, capturing
 rendered pages as compact structured YAML or JSON, and interacting with
 resumable multi-page browser sessions.

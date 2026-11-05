@@ -3,6 +3,7 @@
 mod checkpoint;
 mod display;
 mod engine;
+mod favicon;
 mod lifecycle;
 mod page_selection;
 mod page_state;

@@ -24,9 +24,15 @@ bowser https://example.com
 bowser -i https://example.com
 bowser session list
 bowser --json-envelope capabilities
+bowser --json-envelope session info <SESSION_ID> --include-favicons
 ```
 
 ## Commands
+
+Consumers may request `session info --include-favicons` when capabilities
+advertise `page_favicons: true`. Its flat page records contain transient,
+bounded PNG data; ordinary session output and checkpoints remain icon-free.
+See [Transient Page Favicons](../../docs/protocol/bowser/page-favicons.md).
 
 - `bowser <URL>` and `bowser get <URL>`: single-shot capture with detached-session output
 - once `get` creates a session, later navigation, capture, or output errors still detach and print `Session: <ID>` so the running browser remains discoverable and resumable

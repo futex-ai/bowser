@@ -3,6 +3,7 @@
 use std::{collections::HashSet, time::Duration};
 
 use chromiumoxide::browser::Browser as ChromiumBrowser;
+use chromiumoxide::cdp::browser_protocol::target::GetTargetsParams;
 use futures::future::join_all;
 
 use crate::{
@@ -51,10 +52,12 @@ impl Browser {
     ) -> Result<Vec<LiveBrowserPage>> {
         let target_infos = state
             .browser
-            .fetch_targets()
+            .execute(GetTargetsParams::default())
             .await
             .map_err(|err| Error::cdp(format!("failed to fetch targets: {err}")))?;
         let fetched_page_target_ids = target_infos
+            .result
+            .target_infos
             .into_iter()
             .filter(|target| target.r#type == "page")
             .map(|target| target.target_id.as_ref().to_string())
@@ -122,7 +125,7 @@ impl Browser {
     ) -> Result<Option<chromiumoxide::Page>> {
         state
             .browser
-            .fetch_targets()
+            .execute(GetTargetsParams::default())
             .await
             .map_err(|err| Error::cdp(format!("failed to fetch targets: {err}")))?;
         for attempt in 0..50 {

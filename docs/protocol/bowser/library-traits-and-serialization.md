@@ -9,6 +9,7 @@ pub trait BrowserEngine: Send + Sync {
     async fn current_page(&self) -> Result<Box<dyn PageEngine>>;
     async fn list_pages(&self) -> Result<Vec<SessionPageSummary>>;
     async fn live_session_metadata(&self) -> Result<SessionMetadata>;
+    async fn live_session_pages(&self) -> Result<Vec<LiveSessionPage>>;
     async fn select_page(&self, page_id: &str) -> Result<Box<dyn PageEngine>>;
     async fn new_page(&self, url: Option<&str>) -> Result<Box<dyn PageEngine>>;
     async fn close_page(&self, page_id: Option<&str>) -> Result<Box<dyn PageEngine>>;
@@ -71,6 +72,11 @@ snapshot containing live pages only; stored page IDs and the logical selected
 page remain stable while their targets are live, except that an unambiguous
 visible/focused tab becomes the selected page without being activated by
 Bowser.
+
+`BrowserEngine::live_session_pages` returns the distinct transient live-page
+shape with nullable, bounded PNG favicons. It preserves the metadata-only
+inventory and durable checkpoint boundaries; see
+[Transient Page Favicons](./page-favicons.md).
 
 `PageEngine::download` is browser-native. It runs through Chrome's current
 session state, so redirects, cookies, authentication, and
