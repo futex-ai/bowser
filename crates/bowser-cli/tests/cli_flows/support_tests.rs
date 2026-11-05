@@ -27,6 +27,23 @@ fn bowser_command_forces_headless_browser_defaults() {
     }
 }
 
+#[test]
+fn version_flags_report_the_exact_package_version() {
+    for flag in ["-V", "--version"] {
+        let output = support::bowser_command()
+            .arg(flag)
+            .output()
+            .expect("run Bowser version flag");
+
+        assert!(output.status.success());
+        assert_eq!(
+            std::str::from_utf8(&output.stdout).expect("UTF-8 stdout"),
+            format!("bowser {}\n", env!("CARGO_PKG_VERSION"))
+        );
+        assert!(output.stderr.is_empty());
+    }
+}
+
 #[cfg(unix)]
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn test_session_directory_closes_detached_browsers_on_drop() {

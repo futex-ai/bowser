@@ -57,7 +57,7 @@ fn include_bowser_runs_all_browser_and_smoke_commands() {
         Vec::new(),
     ));
 
-    assert_eq!(commands.len(), 7);
+    assert_eq!(commands.len(), 8);
     assert_eq!(
         commands[0].args,
         ["test", "--locked", "-p", "bowser", "--lib"]
@@ -81,6 +81,7 @@ fn include_bowser_runs_all_browser_and_smoke_commands() {
     );
     assert!(commands[5].args.contains(&"interactive_repl"));
     assert_eq!(commands[6].args.last(), Some(&"--help"));
+    assert_eq!(commands[7].args.last(), Some(&"--version"));
 }
 
 #[test]

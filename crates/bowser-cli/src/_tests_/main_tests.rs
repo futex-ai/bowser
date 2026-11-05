@@ -1,4 +1,4 @@
-use clap::Parser;
+use clap::{Parser, error::ErrorKind};
 
 use crate::args::{Cli, Command, SessionSubcommand};
 use crate::cli::config_overrides;
@@ -29,6 +29,18 @@ fn cli_rejects_zero_viewport_dimensions() {
         assert!(
             Cli::try_parse_from(["bowser", "--viewport", viewport, "https://example.com"]).is_err(),
             "accepted invalid viewport {viewport}"
+        );
+    }
+}
+
+#[test]
+fn cli_version_flags_render_the_exact_package_version() {
+    for flag in ["-V", "--version"] {
+        let error = Cli::try_parse_from(["bowser", flag]).expect_err("version exits through Clap");
+        assert_eq!(error.kind(), ErrorKind::DisplayVersion);
+        assert_eq!(
+            error.to_string(),
+            format!("bowser {}\n", env!("CARGO_PKG_VERSION"))
         );
     }
 }

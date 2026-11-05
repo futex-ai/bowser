@@ -60,4 +60,7 @@ jobs:
         run: cargo build --locked --release --package bowser-cli --bin bowser
 
       - name: Smoke test release CLI
-        run: target/release/bowser --help
+        run: |
+          VERSION="$(scripts/release.sh workspace-version)"
+          target/release/bowser --help
+          [[ "$(target/release/bowser --version)" == "bowser $VERSION" ]]

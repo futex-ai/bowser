@@ -252,7 +252,7 @@ dependencies = [
 
 [[package]]
 name = "bowser"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "async-trait",
  "async-tungstenite 0.34.1",
@@ -279,7 +279,7 @@ dependencies = [
 
 [[package]]
 name = "bowser-cli"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "assert_cmd",
  "axum",
@@ -3111,7 +3111,7 @@ checksum = "1ffae5123b2d3fc086436f8834ae3ab053a283cfac8fe0a0b8eaae044768a4c4"
 
 [[package]]
 name = "xtask"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "clap",
  "insta",

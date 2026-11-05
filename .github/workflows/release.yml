@@ -120,8 +120,10 @@ jobs:
       - name: Smoke test release CLI
         env:
           TARGET: ${{ matrix.target }}
+          VERSION: ${{ needs.verify.outputs.version }}
         run: |
           "target/$TARGET/release/bowser" --help
+          [[ "$("target/$TARGET/release/bowser" --version)" == "bowser $VERSION" ]]
 
       - name: Package release asset
         id: package

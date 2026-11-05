@@ -70,6 +70,7 @@ Export and restore portable login state, or inspect the installed integration
 contract:
 
 ```bash
+bowser --version
 bowser session export --session <SESSION_ID> --to checkpoint.json
 bowser session restore --from checkpoint.json
 bowser --json-envelope capabilities
@@ -79,7 +80,8 @@ Resumed capture, interaction, and page-management commands re-detach before
 reporting operation, rendering, or output failures, so persisted page state is
 left ready for the next command.
 
-Run `bowser --help` for the full command surface. The
+Run `bowser --help` for the full command surface and `bowser --version` (or
+`bowser -V`) for the exact installed package version. The
 [CLI crate README](crates/bowser-cli/README.md) documents commands and manual
 smoke paths in more detail.
 

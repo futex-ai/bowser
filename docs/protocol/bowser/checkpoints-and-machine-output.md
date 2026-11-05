@@ -143,7 +143,7 @@ plain JSON for easy template inspection:
 
 ```json
 {
-  "version": "0.3.0",
+  "version": "0.3.1",
   "envelope_versions": [1],
   "checkpoint_versions": [1],
   "features": {
